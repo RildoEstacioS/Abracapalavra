@@ -380,13 +380,15 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 }
 
 /* ---------- JANELAS ---------- */
+#report, #overlay { position: fixed !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important; width: auto !important; height: auto !important; min-height: 0 !important; max-height: none !important; margin: 0 !important; transform: none !important; }
+#report[hidden], #overlay[hidden] { display: none !important; }
 .overlay { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(14, 8, 5, .86); padding: 16px; }
 .card { max-width: 480px; text-align: center; display: grid; gap: 10px; justify-items: center; }
 .card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(22px, 4vw, 32px); color: var(--gold); text-wrap: balance; }
 .card p { margin: 0; line-height: 1.45; font-size: 16px; }
 .card .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
-.modal {
+.ap-report {
   position: fixed; inset: 0; z-index: 50; overflow: auto;
   background: rgba(10, 6, 4, .82);
   display: grid; place-items: start center;
@@ -395,9 +397,9 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.sheet { width: min(100%, 660px); background: var(--sheet); border: 3px solid var(--wood-line); border-radius: 18px; padding: 18px; display: grid; gap: 16px; }
-.sheet h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(22px, 4vw, 30px); color: var(--gold); text-wrap: balance; }
-.sheet .sub { margin: -8px 0 0; color: var(--muted); font-size: 14px; }
+.ap-sheet { width: min(100%, 660px); background: var(--sheet); border: 3px solid var(--wood-line); border-radius: 18px; padding: 18px; display: grid; gap: 16px; }
+.ap-sheet h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(22px, 4vw, 30px); color: var(--gold); text-wrap: balance; }
+.ap-sheet .sub { margin: -8px 0 0; color: var(--muted); font-size: 14px; }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .stat { background: rgba(0,0,0,.28); border-radius: 12px; padding: 10px; display: grid; gap: 2px; min-width: 0; }
 .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
@@ -411,7 +413,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .w.bad { background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
 .w.bad small { color: var(--muted); }
 .empty-note { color: var(--muted); font-size: 14px; margin: 0; }
-.sheet .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ap-sheet .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .copied { font-size: 13px; color: var(--magic); align-self: center; }
 
 @media (max-width: 720px) {
@@ -619,8 +621,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 </div>
 
 <!-- RELATÓRIO DA FASE -->
-<div class="modal" id="report" hidden role="dialog" aria-modal="true" aria-labelledby="repTitle">
-  <div class="sheet">
+<div class="ap-report" id="report" hidden role="dialog" aria-modal="true" aria-labelledby="repTitle">
+  <div class="ap-sheet">
     <h2 id="repTitle"></h2>
     <p class="sub" id="repSub"></p>
     <div class="stats" id="repStats"></div>
@@ -1602,8 +1604,20 @@ function showReport(won) {
   add(won ? "Jogar de novo" : "Tentar de novo", won && i < PHASES.length - 1 ? "" : "cast", () => startPhase(i));
   add("Escolher fase", "", showMenu);
   const copyBtn = add("Copiar relatório", "", () => copyReport(won, copyBtn));
-  els.report.hidden = false;
-  els.repRow.querySelector("button").focus();
+  openReport();
+}
+// abre o relatório e garante que ele cobre a tela inteira (mesmo se algum estilo de fora tentar mudar)
+function openReport() {
+  const r = els.report;
+  r.hidden = false; r.scrollTop = 0;
+  try { els.repRow.querySelector("button").focus({ preventScroll: true }); } catch (e) {}
+  requestAnimationFrame(() => {
+    const b = r.getBoundingClientRect();
+    if (b.top !== 0 || b.height < innerHeight - 2) {
+      for (const [k, v] of [["top", "0px"], ["left", "0px"], ["width", innerWidth + "px"], ["height", innerHeight + "px"]]) r.style.setProperty(k, v, "important");
+    }
+    r.scrollTop = 0;
+  });
 }
 function showTreinoReport() {
   const L = S.log;
@@ -1623,8 +1637,7 @@ function showTreinoReport() {
   add("Nova rodada", "cast", startTreino);
   add("Menu", "", showTitle);
   const copyBtn = add("Copiar relatório", "", () => copyReport(true, copyBtn));
-  els.report.hidden = false;
-  els.repRow.querySelector("button").focus();
+  openReport();
 }
 function copyReport(won, btn) {
   const i = S.phase, P = PHASES[Math.max(0, i)], L = S.log;
