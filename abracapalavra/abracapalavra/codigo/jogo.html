@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d1410">
+<title>Abracapalavra</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,__ICONE__">
+<style>/*__FONTES__*/</style>
+</head>
+<body>
+<style>
+/* Layout: menu principal (logo + modos), tela de fases (10 fases) e tela de batalha: arena em cima, quadro do jogador e quadro do monstro embaixo; relatório em janela no fim de cada fase. Visual único (noite de fogueira). */
+:root {
+  --ground: #1d1410;
+  --wood: #4a2f1f;
+  --wood-line: #6b4530;
+  --sheet: #2c1c13;
+  --foe-wood: #3b1f1c;
+  --foe-line: #6e3229;
+  --parchment: #f2e2bf;
+  --parchment-edge: #c9ad7c;
+  --foe-tile: #e9c3b3;
+  --foe-tile-edge: #b98b79;
+  --ink: #2a1b12;
+  --text: #f5ead6;
+  --muted: #c9b79b;
+  --magic: #3fd8c6;
+  --magic-deep: #12907f;
+  --foe: #ee5a3f;
+  --gold: #f2b632;
+  --hp-bg: #2b1e16;
+  --display: "Rowdies", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Andika", "Verdana", system-ui, sans-serif;
+  --logo: "Luckiest Guy", "Rowdies", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--ground); color: var(--text); font-family: var(--body); font-size: 16px; }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.app {
+  max-width: 1000px; margin: 0 auto; min-height: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+  padding-block: 12px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+/* tela de jogo: ocupa exatamente a altura da janela, sem rolagem */
+.app.screen-game { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; padding-block: 10px; gap: 10px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font-family: var(--logo); font-size: 27px; letter-spacing: 1px; line-height: 1; color: var(--gold); text-shadow: 0 3px 0 #7a2e0e; }
+.brand small { display: block; font-family: var(--body); font-size: 13px; color: var(--muted); letter-spacing: 0; text-shadow: none; margin-top: 5px; }
+
+/* ---------- MENU PRINCIPAL ---------- */
+.app.screen-title { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; padding-block: 12px; }
+.title-screen { position: relative; isolation: isolate; flex: 1 1 auto; min-height: 0; display: grid; justify-items: center; align-content: space-evenly; gap: 10px; text-align: center; }
+.title-screen::before {
+  content: ""; position: absolute; inset: -12px -16px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 60% 40% at 50% 22%, rgba(63, 216, 198, .16), transparent 70%), radial-gradient(ellipse 55% 35% at 50% 62%, rgba(242, 182, 50, .12), transparent 72%);
+}
+.logo { margin: 0; display: grid; justify-items: center; gap: 8px; font-family: var(--logo); font-weight: 400; line-height: 1; }
+.logo .l1 {
+  display: flex; font-size: min(clamp(50px, 12vw, 104px), 10dvh); letter-spacing: .02em;
+  filter: drop-shadow(3px 0 0 #2a1206) drop-shadow(-3px 0 0 #2a1206) drop-shadow(0 3px 0 #2a1206) drop-shadow(0 -3px 0 #2a1206) drop-shadow(0 7px 0 #7a2e0e) drop-shadow(0 0 22px rgba(242, 182, 50, .35));
+}
+.logo .l1 span {
+  display: inline-block; padding-top: .08em;
+  background: linear-gradient(#fff6b8 0%, #ffd34d 42%, #f2a01f 78%, #d9670f 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  transform: rotate(var(--r, 0deg)) translateY(var(--y, 0px));
+  animation: rise .7s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: var(--d, 0s);
+}
+.logo .l2 { display: flex; gap: clamp(4px, 1vw, 10px); flex-wrap: wrap; justify-content: center; }
+.logo .l2 span {
+  width: min(clamp(38px, 9.4vw, 76px), 7.6dvh); aspect-ratio: 1 / 1; display: grid; place-items: center; padding-top: .14em;
+  border-radius: 14%; background: linear-gradient(#fdf4df, var(--parchment)); color: var(--ink);
+  font-size: min(clamp(27px, 6.6vw, 54px), 5.4dvh);
+  box-shadow: 0 5px 0 var(--parchment-edge), 0 10px 18px rgba(0, 0, 0, .45);
+  transform: rotate(var(--r, 0deg));
+  animation: drop .6s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: var(--d, 0s);
+  transition: transform .15s;
+}
+.logo .l2 span:not(.sp) { animation: drop .6s cubic-bezier(.3, 1.6, .5, 1) var(--d, 0s) both, spell 5s ease-in-out calc(1.6s + var(--i, 0) * .16s) infinite; }
+.logo .l2 span:hover { transform: rotate(0deg) translateY(-6px); }
+.logo .sp { width: .35em !important; background: none !important; box-shadow: none !important; }
+@keyframes spell {
+  0%, 14%, 100% { translate: 0 0; box-shadow: 0 5px 0 var(--parchment-edge), 0 10px 18px rgba(0, 0, 0, .45); }
+  6% { translate: 0 -7px; box-shadow: 0 5px 0 var(--parchment-edge), 0 0 0 3px var(--magic), 0 0 24px rgba(63, 216, 198, .75); }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(40px) scale(.6); } }
+@keyframes drop { from { opacity: 0; transform: translateY(-60px) rotate(-20deg); } }
+.tagline { margin: -4px 0 0; font-family: var(--display); font-size: clamp(15px, 2.6vw, 19px); color: var(--parchment); letter-spacing: .3px; text-wrap: balance; }
+.hero { display: flex; align-items: flex-end; justify-content: center; gap: clamp(14px, 7vw, 80px); width: 100%; }
+.hero .h-shaman { height: min(187px, 21dvh, 28vw); aspect-ratio: 3 / 4; }
+.hero .h-foe { height: min(160px, 18dvh, 24vw); aspect-ratio: 1 / 1; }
+.hero svg { width: 100%; height: 100%; overflow: visible; }
+.hero .spark { align-self: center; width: clamp(28px, 6vw, 44px); aspect-ratio: 1 / 1; border-radius: 50%; background: radial-gradient(circle, #fff 0%, var(--magic) 45%, rgba(63, 216, 198, 0) 72%); box-shadow: 0 0 24px var(--magic); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.3); opacity: .7; } }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: min(100%, 640px); }
+.mode-card {
+  cursor: pointer; text-align: left; border-radius: 16px; padding: 14px 16px 16px;
+  background: var(--wood); border: 3px solid var(--wood-line); box-shadow: 0 6px 0 #2a180e;
+  display: grid; gap: 7px; transition: transform .12s, border-color .12s;
+}
+.mode-card:hover { transform: translateY(-3px); border-color: var(--magic); }
+.mode-card:active { transform: translateY(3px); box-shadow: 0 3px 0 #2a180e; }
+.mode-card b { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .3px; }
+.mode-card .d { color: var(--muted); font-size: 14px; line-height: 1.35; }
+.mode-card .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 2px; }
+.mode-card .prog { font-size: 13px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.mode-card .go { font-family: var(--display); font-size: 14px; letter-spacing: .5px; padding: 5px 12px; border-radius: 999px; background: var(--magic); color: #052a25; }
+.mini { display: flex; gap: 5px; }
+.mini i { font-style: normal; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 7px; display: grid; place-items: center; background: var(--parchment); color: var(--ink); font-weight: 700; font-size: 17px; box-shadow: 0 3px 0 var(--parchment-edge); }
+.title-foot { display: flex; gap: 10px 16px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+.top-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.phase-pill {
+  font-family: var(--display); font-size: 13px; letter-spacing: .6px; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px; background: var(--wood); border: 1px solid var(--wood-line);
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px; background: transparent; border: 1px solid var(--wood-line);
+  font-size: 14px; min-height: 34px;
+}
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.chip[aria-pressed="true"] .dot { background: var(--magic); box-shadow: 0 0 8px var(--magic); }
+.chips { display: inline-flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ---------- TELA DE FASES ---------- */
+.menu { display: grid; gap: 18px; }
+.menu-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px 16px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 13px; letter-spacing: .8px; text-transform: uppercase; color: var(--magic); }
+.menu-head h1 { margin: 2px 0 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 5vw, 38px); color: var(--gold); }
+.menu-head em { font-style: normal; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.menu-note { margin: -8px 0 0; color: var(--muted); line-height: 1.45; max-width: 64ch; }
+.phases { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.phase-card {
+  cursor: pointer; border-radius: 14px; padding: 10px 8px 12px;
+  background: var(--wood); border: 3px solid var(--wood-line);
+  display: grid; gap: 4px; justify-items: center; text-align: center;
+  position: relative;
+}
+.phase-card .art { width: 72%; max-width: 92px; aspect-ratio: 1 / 1; }
+.phase-card .art svg { width: 100%; height: 100%; }
+.phase-card .num { font-size: 12px; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
+.phase-card .nm { font-family: var(--display); font-size: 15px; line-height: 1.15; text-wrap: balance; }
+.phase-card .st { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.3); color: var(--muted); }
+.phase-card.won { border-color: var(--gold); }
+.phase-card.won .st { background: var(--gold); color: var(--ink); font-weight: 700; }
+.phase-card.next { border-color: var(--magic); }
+.phase-card.next .st { background: var(--magic); color: #052a25; font-weight: 700; }
+.phase-card:disabled { cursor: not-allowed; opacity: .55; }
+.phase-card:disabled .art { filter: grayscale(1) brightness(.6); }
+.phase-card .lock { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; }
+.menu-foot { color: var(--muted); font-size: 13px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.linkbtn { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 6px 0; font-size: 13px; }
+
+/* ---------- ARENA ---------- */
+.arena {
+  position: relative; width: 100%; flex: 0 0 auto;
+  height: clamp(150px, 32dvh, 330px);
+  border-radius: 16px; overflow: hidden;
+  border: 3px solid var(--wood-line);
+  isolation: isolate;
+}
+.scene { position: absolute; inset: 0; z-index: -2; }
+.scene svg.far { position: absolute; inset: auto 0 0 0; width: 100%; height: 78%; }
+.ground { position: absolute; left: 0; right: 0; bottom: 0; height: 18%; z-index: -1; }
+.scene[data-scene="pantano"] { background: linear-gradient(#5b8f8a 0%, #9cc2a6 55%, #6c8f5e 100%); }
+.scene[data-scene="pantano"] + .ground { background: linear-gradient(#4f6e3a, #34492a); }
+.scene[data-scene="mangue"] { background: linear-gradient(#7ec8d8 0%, #bfe6e6 55%, #e9d6a2 100%); }
+.scene[data-scene="mangue"] + .ground { background: linear-gradient(#8a6a44, #5e4529); }
+.scene[data-scene="caverna"] { background: radial-gradient(ellipse at 50% 30%, #6a4f86 0%, #3a2950 55%, #1f1630 100%); }
+.scene[data-scene="caverna"] + .ground { background: linear-gradient(#3d3048, #241b2e); }
+.scene[data-scene="floresta"] { background: linear-gradient(#2f5b46 0%, #6c9b62 60%, #3f6a3a 100%); }
+.scene[data-scene="floresta"] + .ground { background: linear-gradient(#5a4a2c, #3b301d); }
+.scene[data-scene="deserto"] { background: linear-gradient(#f3b35c 0%, #f6d28c 55%, #e7a65e 100%); }
+.scene[data-scene="deserto"] + .ground { background: linear-gradient(#d39a55, #a8743c); }
+.scene[data-scene="rio"] { background: linear-gradient(#2d7fa8 0%, #1c5a80 55%, #123f5c 100%); }
+.scene[data-scene="rio"] + .ground { background: linear-gradient(#7d6a48, #4f4130); }
+.scene[data-scene="noite"] { background: linear-gradient(#141a36 0%, #2a2f5a 60%, #3a3f6e 100%); }
+.scene[data-scene="noite"] + .ground { background: linear-gradient(#22283f, #151a2a); }
+.scene[data-scene="montanha"] { background: linear-gradient(#8fb4d6 0%, #c9dcea 55%, #9aa7b3 100%); }
+.scene[data-scene="montanha"] + .ground { background: linear-gradient(#7d7f86, #55575d); }
+.scene[data-scene="neve"] { background: linear-gradient(#a9d3ec 0%, #dcefff 60%, #eef7fd 100%); }
+.scene[data-scene="neve"] + .ground { background: linear-gradient(#f4fbff, #cfe3ef); }
+.scene[data-scene="vulcao"] { background: linear-gradient(#3b1416 0%, #a8351f 55%, #e07b2c 100%); }
+.scene[data-scene="vulcao"] + .ground { background: linear-gradient(#3a2420, #201312); }
+
+.hud { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; justify-content: space-between; gap: 12px; }
+.hp { width: min(42%, 300px); background: rgba(20, 12, 8, .72); border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 6px 10px 8px; }
+.hp .who { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.hp .who b { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hp .who span { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.bar { height: 12px; border-radius: 6px; background: var(--hp-bg); overflow: hidden; margin-top: 5px; border: 1px solid rgba(255,255,255,.12); }
+.bar i { display: block; height: 100%; width: 100%; border-radius: 6px; transition: width .45s ease; }
+.hp.player .bar i { background: linear-gradient(90deg, var(--magic-deep), var(--magic)); }
+.hp.foe .bar i { background: linear-gradient(90deg, #a8321f, var(--foe)); margin-left: auto; }
+.hp.foe { text-align: right; }
+
+.fighter { position: absolute; bottom: 6%; height: 72%; aspect-ratio: 3 / 4; }
+.fighter svg { width: 100%; height: 100%; overflow: visible; }
+.fighter.player { left: 11%; }
+.fighter.foe { right: 10%; height: 66%; aspect-ratio: 1 / 1; }
+.bubble {
+  position: absolute; font-family: var(--display); font-size: clamp(16px, 2.6vw, 24px); letter-spacing: 2px; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 10px; white-space: nowrap; opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.bubble.show { opacity: 1; }
+.bubble .todo { opacity: .5; letter-spacing: 3px; }
+.player .bubble { background: var(--magic); color: #06302b; left: 100%; bottom: 62%; transform: translate(20px, 0); }
+.foe .bubble { background: var(--foe); color: #2a0a04; right: 100%; bottom: 62%; transform: translate(-6px, 0); }
+.banner {
+  position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%);
+  max-width: min(46%, 380px); text-align: center; font-size: 15px; line-height: 1.3;
+  background: rgba(14, 8, 5, .7); border-radius: 10px; padding: 6px 12px; color: var(--text);
+}
+.banner:empty { display: none; }
+.banner.bad { color: #ffc4b6; }
+.banner.good { color: #a9f5eb; }
+
+.hit { animation: hit .45s; }
+@keyframes hit { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px) rotate(-2deg); } 50% { transform: translateX(7px); } 75% { transform: translateX(-4px); } }
+.idle { animation: bob 2.6s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.smoke circle { transform-box: fill-box; transform-origin: center; animation: smoke 2.6s ease-out infinite; }
+.smoke circle:nth-child(2) { animation-delay: .8s; }
+.smoke circle:nth-child(3) { animation-delay: 1.6s; }
+@keyframes smoke { 0% { opacity: 0; transform: translate(4px, 6px) scale(.5); } 30% { opacity: .8; } 100% { opacity: 0; transform: translate(-8px, -16px) scale(1.4); } }
+.bolt { position: absolute; width: 26px; height: 26px; border-radius: 50%; pointer-events: none; z-index: 5; }
+.fighter.player svg, .h-shaman svg { transform-origin: 50% 94%; }
+.sh-staff { transform-box: view-box; transform-origin: 104.5px 87px; }
+.sh-glow { transform-box: fill-box; transform-origin: center; }
+.spark-p { position: absolute; z-index: 6; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #e6fffb; box-shadow: 0 0 10px var(--magic), 0 0 3px #fff; pointer-events: none; }
+.h-shaman { cursor: pointer; }
+.bolt.p { background: radial-gradient(circle, #fff 0%, var(--magic) 45%, rgba(63,216,198,0) 72%); box-shadow: 0 0 22px var(--magic); }
+.bolt.m { background: radial-gradient(circle, #fff 0%, var(--foe) 45%, rgba(238,90,63,0) 72%); box-shadow: 0 0 22px var(--foe); }
+.dmg { position: absolute; z-index: 6; pointer-events: none; font-family: var(--display); font-size: clamp(22px, 4vw, 36px); color: #fff; text-shadow: 0 2px 0 #000, 0 0 10px rgba(0,0,0,.6); animation: float 1.1s ease-out forwards; }
+@keyframes float { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -60px); opacity: 0; } }
+
+/* ---------- QUADROS ---------- */
+.game { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.duel { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 12px; }
+.board { min-height: 0; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.board.me { background: repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 2px, transparent 2px 22px), var(--wood); border: 3px solid var(--wood-line); }
+.board.them { background: repeating-linear-gradient(90deg, rgba(255,255,255,.02) 0 2px, transparent 2px 22px), var(--foe-wood); border: 3px solid var(--foe-line); }
+.board-title { flex: 0 0 auto; width: 100%; font-family: var(--display); font-size: 14px; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.board-title em { font-style: normal; font-family: var(--body); text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.tiles-wrap { flex: 1 1 0; min-height: 0; width: 100%; container-type: size; display: grid; place-items: center; }
+.tiles { display: grid; }
+.me .tiles { --g: 8px; --s: min(68px, (100cqw - 4 * var(--g)) / 5, (100cqh - 3 * var(--g) - 4px) / 4); width: calc(var(--s) * 5 + 4 * var(--g)); grid-template-columns: repeat(5, 1fr); gap: var(--g); }
+.them .tiles { --g: 6px; --s: min(48px, (100cqw - 3 * var(--g)) / 4, (100cqh - 3 * var(--g) - 3px) / 4); width: calc(var(--s) * 4 + 3 * var(--g)); grid-template-columns: repeat(4, 1fr); gap: var(--g); }
+.tile {
+  aspect-ratio: 1 / 1; border: 0; cursor: pointer; padding: 0; min-width: 0;
+  background: linear-gradient(#f7ead0, var(--parchment)); color: var(--ink);
+  border-radius: calc(var(--s, 56px) * .17); box-shadow: 0 4px 0 var(--parchment-edge), 0 6px 10px rgba(0,0,0,.35);
+  font-family: var(--body); font-weight: 700; font-size: calc(var(--s, 56px) * .52);
+  text-transform: uppercase; display: grid; place-items: center;
+  transition: transform .12s, opacity .12s, box-shadow .12s; touch-action: manipulation;
+}
+.me .tile:hover:not(:disabled) { transform: translateY(-2px); }
+.me .tile:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 var(--parchment-edge); }
+.tile.picked { opacity: .22; transform: scale(.9); box-shadow: none; cursor: default; }
+.them .tile { cursor: default; font-size: calc(var(--s, 40px) * .46); background: linear-gradient(#f3d6ca, var(--foe-tile)); box-shadow: 0 3px 0 var(--foe-tile-edge); }
+.them .tile.picked { opacity: 1; transform: scale(.92); background: var(--foe); color: #2a0a04; box-shadow: 0 0 12px rgba(238,90,63,.7); }
+.tile.fresh { animation: pop .35s; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.tiles.locked .tile { cursor: default; }
+.slots { flex: 0 0 auto; width: 100%; height: 60px; display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 12px; background: rgba(0,0,0,.32); border: 2px dashed rgba(242, 226, 191, .28); overflow: hidden; }
+.slots.shake { animation: hit .45s; border-color: var(--foe); }
+.slots.cast { border-color: var(--magic); }
+.slot { flex: 0 1 44px; min-width: 0; height: 44px; padding: 0; border-radius: 8px; border: 0; cursor: pointer; background: var(--parchment); color: var(--ink); font-weight: 700; font-size: 25px; text-transform: uppercase; display: grid; place-items: center; box-shadow: 0 3px 0 var(--parchment-edge); overflow: hidden; }
+.slot.empty { background: rgba(242,226,191,.08); box-shadow: none; cursor: default; }
+.them .slots { height: 44px; padding: 4px 6px; gap: 4px; border-color: rgba(238, 90, 63, .35); }
+.them .slot { flex-basis: 30px; height: 30px; font-size: 18px; cursor: default; background: var(--foe); color: #2a0a04; box-shadow: none; }
+.them .slot.empty { background: rgba(238, 90, 63, .12); }
+
+/* modo sílabas: peças mais largas (5:4) */
+.app.silabas .me .tiles { --s: min(62px, (100cqw - 3 * var(--g)) / 5, (100cqh - 3 * var(--g) - 4px) / 4); width: calc(var(--s) * 5 + 3 * var(--g)); grid-template-columns: repeat(4, 1fr); }
+.app.silabas .me .tile { aspect-ratio: 5 / 4; font-size: calc(var(--s) * .44); letter-spacing: 1px; }
+.app.silabas .them .tiles { --s: min(44px, (100cqw - 3 * var(--g)) / 5, (100cqh - 2 * var(--g) - 3px) / 3); width: calc(var(--s) * 5 + 3 * var(--g)); }
+.app.silabas .them .tile { aspect-ratio: 5 / 4; font-size: calc(var(--s) * .4); }
+.app.silabas .me .slot { flex-basis: 64px; font-size: 21px; letter-spacing: 1px; }
+.app.silabas .them .slot { flex-basis: 42px; font-size: 14px; }
+
+.controls { flex: 0 0 auto; width: 100%; display: flex; gap: 8px; justify-content: center; flex-wrap: nowrap; }
+.btn { border-radius: 12px; border: 2px solid var(--wood-line); background: #3a2418; padding: 8px 14px; cursor: pointer; font-size: 15px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn .ic { width: 20px; height: 20px; flex: 0 0 auto; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.cast { font-family: var(--display); font-size: 19px; letter-spacing: .6px; background: linear-gradient(var(--magic), var(--magic-deep)); color: #052a25; border-color: #0d6f63; padding-inline: 20px; gap: 10px; }
+.btn.cast .cast-t { white-space: nowrap; }
+.btn.cast .power { font-family: var(--body); font-weight: 700; font-size: 14px; background: rgba(255,255,255,.4); border-radius: 999px; padding: 2px 9px; letter-spacing: 0; white-space: nowrap; }
+.btn.gold { font-family: var(--display); font-size: 17px; background: linear-gradient(var(--gold), #c98a12); color: var(--ink); border-color: #a06d0c; }
+.speed { flex: 0 0 auto; width: 100%; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.speed .track { height: 6px; border-radius: 3px; background: rgba(0,0,0,.35); overflow: hidden; }
+.speed .track i { display: block; height: 100%; width: 0%; background: var(--foe); }
+.legend { flex: 0 0 auto; font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+.legend b { color: var(--text); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .btn.icon { flex-direction: column; gap: 2px; padding: 4px 8px; font-size: 12px; min-width: 60px; }
+  .btn.cast { flex: 1 1 auto; min-width: 0; }
+}
+@supports not (container-type: size) {
+  .app.screen-game { height: auto; min-height: 100%; overflow: visible; }
+  .tiles-wrap { flex: 0 0 auto; }
+  .me .tiles { width: min(100%, 370px); } .app.silabas .me .tiles { width: min(100%, 340px); } .them .tiles { width: min(100%, 230px); }
+  .tile { font-size: 28px; } .them .tile { font-size: 17px; } .app.silabas .me .tile { font-size: 24px; } .app.silabas .them .tile { font-size: 14px; }
+}
+
+/* ---------- JANELAS ---------- */
+.overlay { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(14, 8, 5, .86); padding: 16px; }
+.card { max-width: 480px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(22px, 4vw, 32px); color: var(--gold); text-wrap: balance; }
+.card p { margin: 0; line-height: 1.45; font-size: 16px; }
+.card .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+.modal {
+  position: fixed; inset: 0; z-index: 50; overflow: auto;
+  background: rgba(10, 6, 4, .82);
+  display: grid; place-items: start center;
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet { width: min(100%, 660px); background: var(--sheet); border: 3px solid var(--wood-line); border-radius: 18px; padding: 18px; display: grid; gap: 16px; }
+.sheet h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(22px, 4vw, 30px); color: var(--gold); text-wrap: balance; }
+.sheet .sub { margin: -8px 0 0; color: var(--muted); font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat { background: rgba(0,0,0,.28); border-radius: 12px; padding: 10px; display: grid; gap: 2px; min-width: 0; }
+.stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.stat b { font-family: var(--display); font-weight: 400; font-size: 22px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.wlist h3 { margin: 0 0 8px; font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.words { display: flex; flex-wrap: wrap; gap: 6px; }
+.w { display: inline-flex; align-items: baseline; gap: 6px; background: var(--parchment); color: var(--ink); border-radius: 8px; padding: 4px 9px; }
+.w b { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.w small { font-size: 12px; color: #6a5440; font-variant-numeric: tabular-nums; }
+.w.foe { background: var(--foe-tile); }
+.w.bad { background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
+.w.bad small { color: var(--muted); }
+.empty-note { color: var(--muted); font-size: 14px; margin: 0; }
+.sheet .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.copied { font-size: 13px; color: var(--magic); align-self: center; }
+
+@media (max-width: 720px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modes { grid-template-columns: 1fr; }
+  .brand { font-size: 22px; }
+  .card h2 { font-size: 22px; }
+  .card p { font-size: 15px; line-height: 1.4; }
+
+  /* jogo: tudo na altura da tela */
+  .app.screen-game { padding-block: 8px; gap: 8px; }
+  .app.screen-game .brand, .app.screen-game .top-right > .calm-toggle { display: none; }
+  .app.screen-game .top-right, .app.screen-game .chips { width: 100%; flex-wrap: nowrap; justify-content: space-between; }
+  .phase-pill { font-size: 12px; padding: 6px 10px; white-space: nowrap; }
+  .game { gap: 8px; }
+  .arena { height: clamp(118px, 26dvh, 240px); border-radius: 14px; border-width: 2px; }
+  .hud { top: 6px; left: 8px; right: 8px; gap: 8px; }
+  .hp { width: 48%; padding: 4px 8px 6px; }
+  .hp .who { font-size: 12px; } .hp .who b { font-size: 13px; }
+  .bar { height: 9px; margin-top: 3px; }
+  .fighter.player { left: 5%; } .fighter.foe { right: 4%; }
+  .banner { max-width: 64%; bottom: 3%; font-size: 12px; padding: 3px 8px; }
+  .bubble { font-size: 15px; padding: 2px 8px; letter-spacing: 1px; }
+  .player .bubble { left: 106%; bottom: 64%; transform: none; }
+  .foe .bubble { right: 92%; bottom: 40%; transform: none; }
+  .duel { display: flex; flex-direction: column; gap: 8px; }
+  .board.them { display: none; }
+  .board.me { flex: 1 1 auto; padding: 8px; gap: 8px; border-width: 2px; border-radius: 14px; }
+  .me .tiles { --g: 6px; }
+  .me .slots { height: 48px; gap: 4px; padding: 4px 6px; }
+  .me .slot { flex-basis: 36px; height: 40px; font-size: 22px; }
+  .app.silabas .me .slot { flex-basis: 52px; font-size: 18px; }
+  .controls { gap: 6px; }
+  .btn { min-height: 50px; }
+  .btn.icon { flex: 0 0 auto; min-width: 58px; padding: 4px 6px; font-size: 11px; }
+  .btn.cast { flex-direction: column; gap: 2px; padding: 4px 8px; font-size: 17px; }
+  .btn.cast .power { font-size: 12px; padding: 1px 8px; }
+
+  /* menu principal: cabe na tela */
+  .app.screen-title { padding-block: 10px; }
+  .title-screen { gap: 8px; }
+  .logo { gap: 6px; }
+  .logo .l1 { font-size: min(12.5vw, 8.5dvh); }
+  .logo .l2 span { width: min(10vw, 6.6dvh); font-size: min(7vw, 4.6dvh); }
+  .tagline { font-size: 15px; margin: 0; }
+  .modes { gap: 8px; }
+  .mode-card { padding: 10px 14px 12px; gap: 4px; }
+  .mode-card b { font-size: 20px; }
+
+  /* tela de fases: as 10 cabem na tela */
+  .app.screen-menu { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; padding-block: 10px; gap: 8px; }
+  .menu { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  .menu-note { display: none; }
+  .menu-head h1 { font-size: 24px; }
+  .phases { flex: 1 1 auto; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .phase-card { grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-content: center; text-align: left; column-gap: 8px; row-gap: 1px; padding: 4px 8px; border-width: 2px; border-radius: 12px; }
+  .phase-card .art { grid-row: 1 / 4; width: min(54px, 8dvh); max-width: none; align-self: center; }
+  .phase-card .num { font-size: 10px; } .phase-card .nm { font-size: 13px; } .phase-card .st { font-size: 10px; padding: 1px 6px; }
+  .phase-card .lock { top: 4px; right: 4px; width: 14px; height: 14px; }
+  .menu-foot { font-size: 12px; }
+}
+@media (max-height: 640px) {
+  .mode-card .d { display: none; }
+  .tagline { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+
+<div class="app" id="app">
+  <div class="top" id="topbar" hidden>
+    <button class="brand" id="brandBtn" title="Voltar ao menu"><span id="brandName"></span><small>O duelo de palavras do xamã</small></button>
+    <div class="top-right">
+      <span class="chips" id="gameChips" hidden>
+        <button class="chip" id="menuBtn">‹ Fases</button>
+        <span class="phase-pill" id="phasePill">Fase 1/10 · Letras</span>
+        <button class="chip" id="pauseBtn">Pausar</button>
+      </span>
+      <button class="chip" id="homeBtn">Menu</button>
+      <button class="chip calm-toggle" aria-pressed="false" title="Deixa o monstro mais lento"><span class="dot"></span>Ritmo calmo</button>
+    </div>
+  </div>
+
+  <!-- MENU PRINCIPAL -->
+  <section class="title-screen" id="title" hidden>
+    <h1 class="logo" id="logo"></h1>
+    <p class="tagline">Forme palavras, lance o poder do xamã e vença os monstros</p>
+    <div class="hero" aria-hidden="true">
+      <div class="h-shaman idle" id="heroShaman"></div>
+      <div class="spark"></div>
+      <div class="h-foe idle" id="heroFoe"></div>
+    </div>
+    <div class="modes" role="group" aria-label="Escolha o modo de jogo">
+      <button class="mode-card" data-mode="letras">
+        <span class="mini" aria-hidden="true"><i>C</i><i>A</i><i>S</i><i>A</i></span>
+        <b>Modo letras</b>
+        <span class="d">Monte a palavra letra por letra. Quanto mais letras, mais forte o poder.</span>
+        <span class="foot"><span class="prog" data-prog="letras"></span><span class="go">Jogar</span></span>
+      </button>
+      <button class="mode-card" data-mode="silabas">
+        <span class="mini" aria-hidden="true"><i>CA</i><i>SA</i></span>
+        <b>Modo sílabas</b>
+        <span class="d">Junte pedaços da palavra. Quanto mais sílabas, mais forte o poder.</span>
+        <span class="foot"><span class="prog" data-prog="silabas"></span><span class="go">Jogar</span></span>
+      </button>
+    </div>
+    <div class="title-foot">
+      <button class="chip calm-toggle" aria-pressed="false" title="Deixa o monstro mais lento"><span class="dot"></span>Ritmo calmo</button>    </div>
+  </section>
+
+  <!-- TELA DE FASES -->
+  <section class="menu" id="menu" hidden>
+    <div class="menu-head">
+      <div><span class="eyebrow" id="modeEyebrow">Modo letras</span><h1>Escolha a fase</h1></div>
+      <em id="progressLabel">0 de 10 vencidas</em>
+    </div>
+    <p class="menu-note">Cada fase abre quando você vence a anterior. O monstro monta palavras ao mesmo tempo que você e fica mais rápido a cada fase.</p>
+    <div class="phases" id="phases"></div>
+    <div class="menu-foot"><span>O progresso fica salvo neste navegador.</span><button class="linkbtn" id="resetBtn">Recomeçar progresso deste modo</button></div>
+  </section>
+
+  <!-- TELA DE BATALHA -->
+  <section class="game" id="game" hidden>
+    <div class="arena" id="arena">
+      <div class="scene" id="scene" data-scene="pantano"></div>
+      <div class="ground"></div>
+      <div class="hud">
+        <div class="hp player"><div class="who"><b>Xamã</b><span id="pHpTxt">40 / 40</span></div><div class="bar"><i id="pHp"></i></div></div>
+        <div class="hp foe"><div class="who"><span id="mHpTxt">18 / 18</span><b id="mName">Lodo Pegajoso</b></div><div class="bar"><i id="mHp"></i></div></div>
+      </div>
+      <div class="fighter player idle" id="shaman">
+        <div class="bubble" id="pBubble"></div>
+        <div id="shamanArt"></div>
+      </div>
+      <div class="fighter foe idle" id="monster">
+        <div class="bubble" id="mBubble"></div>
+        <div id="monsterArt"></div>
+      </div>
+      <div class="banner" id="msg" aria-live="polite"></div>
+    </div>
+
+    <div class="duel">
+      <section class="board me" aria-label="Seu quadro">
+        <div class="tiles-wrap"><div class="tiles" id="tiles"></div></div>
+        <div class="slots" id="slots" aria-label="Sua palavra"></div>
+        <div class="controls">
+          <button class="btn icon" id="btnBack" title="Apagar a última peça (Backspace)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9l6 6M18 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Apagar</span></button>
+          <button class="btn icon" id="btnClear" title="Devolver todas as peças (Esc)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><span>Limpar</span></button>
+          <button class="btn cast" id="btnCast" title="Enter"><span class="cast-t">Lançar poder</span><span class="power" id="power">dano 0</span></button>
+          <button class="btn icon" id="btnSwap" title="Trocar todas as letras"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-4.6M4 13a8 8 0 0 0 14 4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 2.5v4h4M18 21.5v-4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Trocar</span></button>
+        </div>
+      </section>
+      <aside class="board them" aria-label="Quadro do monstro">
+        <div class="board-title"><span id="foeBoardName">Quadro do Lodo</span><em id="foeSpeed"></em></div>
+        <div class="tiles-wrap"><div class="tiles" id="mTiles" aria-hidden="true"></div></div>
+        <div class="slots" id="mSlots" aria-label="Palavra do monstro"></div>
+        <div class="speed"><span id="foeStatus">O monstro está pensando...</span><div class="track"><i id="foeTrack"></i></div></div>
+        <div class="legend" id="legend"></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<!-- AVISOS (início da fase, pausa) -->
+<div class="overlay" id="overlay" hidden>
+  <div class="card">
+    <h2 id="ovTitle"></h2>
+    <p id="ovText"></p>
+    <div class="row" id="ovRow"></div>
+  </div>
+</div>
+
+<!-- RELATÓRIO DA FASE -->
+<div class="modal" id="report" hidden role="dialog" aria-modal="true" aria-labelledby="repTitle">
+  <div class="sheet">
+    <h2 id="repTitle"></h2>
+    <p class="sub" id="repSub"></p>
+    <div class="stats" id="repStats"></div>
+    <div class="wlist"><h3>Suas palavras</h3><div class="words" id="repMine"></div></div>
+    <div class="wlist"><h3 id="repFoeH">Palavras do monstro</h3><div class="words" id="repFoe"></div></div>
+    <div class="wlist" id="repBadWrap"><h3>Tentativas que não são palavras</h3><div class="words" id="repBad"></div></div>
+    <div class="row" id="repRow"></div>
+  </div>
+</div>
+
+<script>
+const WORDS_STR = "__WORDS__";
+const MONSTER_WORDS = "__MONSTER__".split(" ");
+const DICT = new Set(WORDS_STR.split(" "));
+MONSTER_WORDS.forEach(w => DICT.add(w));
+
+// Palavras com sílabas separadas (modo sílabas). O monstro usa só estas.
+const SYL_WORDS = "__SILABAS__".split(/\s+/).map(w => w.split("-"));
+const SYL_SET = new Set(SYL_WORDS.map(p => p.join("")));
+const SYL_POOL = SYL_WORDS.flat();
+
+const MONSTERS = {
+  lodo: `<svg viewBox="0 0 140 140" role="img" aria-label="Lodo Pegajoso"><ellipse cx="70" cy="132" rx="52" ry="7" fill="#000" opacity=".25"/><path d="M18 128 Q10 92 30 70 Q42 34 70 30 Q100 32 112 66 Q132 92 122 128 Q104 122 96 130 Q84 120 72 130 Q60 120 48 130 Q34 120 18 128 Z" fill="#6fbf4a"/><path d="M40 60 Q52 42 70 40" fill="none" stroke="#b7ef8f" stroke-width="7" stroke-linecap="round" opacity=".7"/><circle cx="56" cy="78" r="12" fill="#fff"/><circle cx="88" cy="74" r="14" fill="#fff"/><circle cx="58" cy="80" r="5" fill="#1d2a12"/><circle cx="90" cy="77" r="6" fill="#1d2a12"/><path d="M56 102 Q72 114 92 100" fill="none" stroke="#1d2a12" stroke-width="4" stroke-linecap="round"/><circle cx="104" cy="108" r="5" fill="#8fdd63"/><circle cx="30" cy="104" r="4" fill="#8fdd63"/></svg>`,
+  caranguejo: `<svg viewBox="0 0 140 140" role="img" aria-label="Caranguejo Gigante"><ellipse cx="70" cy="132" rx="50" ry="6" fill="#000" opacity=".25"/><g stroke="#b8392a" stroke-width="5" stroke-linecap="round" fill="none"><path d="M42 96 L20 106 L14 120"/><path d="M44 104 L24 118 L22 130"/><path d="M50 110 L36 126"/><path d="M98 96 L120 106 L126 120"/><path d="M96 104 L116 118 L118 130"/><path d="M90 110 L104 126"/></g><path d="M44 84 Q24 74 24 56" fill="none" stroke="#d8483a" stroke-width="8" stroke-linecap="round"/><path d="M96 84 Q116 74 116 56" fill="none" stroke="#d8483a" stroke-width="8" stroke-linecap="round"/><path d="M12 52 Q12 30 30 32 Q24 40 32 46 Q22 48 26 60 Q14 60 12 52 Z" fill="#e65a42"/><path d="M128 52 Q128 30 110 32 Q116 40 108 46 Q118 48 114 60 Q126 60 128 52 Z" fill="#e65a42"/><ellipse cx="70" cy="94" rx="36" ry="24" fill="#e65a42"/><ellipse cx="70" cy="86" rx="24" ry="10" fill="#f28a6a" opacity=".6"/><path d="M60 76 L56 56 M80 76 L84 56" stroke="#b8392a" stroke-width="4" stroke-linecap="round"/><circle cx="56" cy="52" r="8" fill="#fff"/><circle cx="84" cy="52" r="8" fill="#fff"/><circle cx="54" cy="53" r="3.5" fill="#2a0a04"/><circle cx="82" cy="53" r="3.5" fill="#2a0a04"/><path d="M60 102 Q70 108 80 102" fill="none" stroke="#7a2015" stroke-width="3" stroke-linecap="round"/></svg>`,
+  morcego: `<svg viewBox="0 0 140 140" role="img" aria-label="Morcegão"><ellipse cx="70" cy="132" rx="38" ry="6" fill="#000" opacity=".25"/><path d="M48 70 Q20 40 2 60 Q16 66 14 80 Q26 74 32 88 Q40 78 50 88 Z" fill="#43306b"/><path d="M92 70 Q120 40 138 60 Q124 66 126 80 Q114 74 108 88 Q100 78 90 88 Z" fill="#43306b"/><ellipse cx="70" cy="80" rx="28" ry="36" fill="#5b3f8f"/><path d="M50 52 L46 22 L62 46 Z" fill="#5b3f8f"/><path d="M90 52 L94 22 L78 46 Z" fill="#5b3f8f"/><ellipse cx="70" cy="92" rx="16" ry="18" fill="#7a5bb0"/><circle cx="60" cy="68" r="7" fill="#f2d33a"/><circle cx="80" cy="68" r="7" fill="#f2d33a"/><circle cx="60" cy="69" r="3" fill="#1b0f2b"/><circle cx="80" cy="69" r="3" fill="#1b0f2b"/><path d="M60 84 Q70 90 80 84" fill="none" stroke="#1b0f2b" stroke-width="3" stroke-linecap="round"/><path d="M64 86 L66 93 L68 86 Z M72 86 L74 93 L76 86 Z" fill="#fff"/><path d="M60 114 L58 126 M80 114 L82 126" stroke="#43306b" stroke-width="5" stroke-linecap="round"/></svg>`,
+  cogumelo: `<svg viewBox="0 0 140 140" role="img" aria-label="Cogumelo Bravo"><ellipse cx="70" cy="132" rx="40" ry="6" fill="#000" opacity=".25"/><path d="M48 76 Q44 112 52 128 L88 128 Q96 112 92 76 Z" fill="#f1e2c4"/><path d="M14 74 Q18 22 70 18 Q122 22 126 74 Q98 84 70 82 Q42 84 14 74 Z" fill="#d8433b"/><circle cx="44" cy="46" r="9" fill="#fff4e4"/><circle cx="78" cy="34" r="7" fill="#fff4e4"/><circle cx="102" cy="56" r="8" fill="#fff4e4"/><circle cx="62" cy="62" r="5" fill="#fff4e4"/><path d="M54 92 L66 98 M86 92 L74 98" stroke="#2a1b12" stroke-width="4" stroke-linecap="round"/><circle cx="61" cy="103" r="4" fill="#2a1b12"/><circle cx="79" cy="103" r="4" fill="#2a1b12"/><path d="M62 118 Q70 112 78 118" fill="none" stroke="#2a1b12" stroke-width="3" stroke-linecap="round"/><path d="M40 104 Q30 100 26 110 M100 104 Q110 100 114 110" stroke="#f1e2c4" stroke-width="7" stroke-linecap="round" fill="none"/></svg>`,
+  cacto: `<svg viewBox="0 0 140 140" role="img" aria-label="Cacto Raivoso"><ellipse cx="70" cy="128" rx="44" ry="9" fill="#d8a85a"/><rect x="24" y="46" width="16" height="40" rx="8" fill="#4f9a3a"/><rect x="30" y="72" width="26" height="14" rx="7" fill="#4f9a3a"/><rect x="100" y="34" width="16" height="38" rx="8" fill="#4f9a3a"/><rect x="84" y="58" width="26" height="14" rx="7" fill="#4f9a3a"/><rect x="48" y="26" width="44" height="104" rx="22" fill="#5aae43"/><path d="M60 34 V124 M80 34 V124" stroke="#3f7f2e" stroke-width="3"/><g stroke="#fff6d8" stroke-width="2" stroke-linecap="round"><path d="M52 50 L47 48"/><path d="M88 56 L93 54"/><path d="M52 104 L47 106"/><path d="M88 110 L93 112"/><path d="M28 56 L23 54"/><path d="M112 44 L117 42"/></g><circle cx="70" cy="26" r="7" fill="#ee7fb0"/><circle cx="62" cy="24" r="5" fill="#f5a3c7"/><circle cx="78" cy="24" r="5" fill="#f5a3c7"/><path d="M56 58 L66 64 M84 58 L74 64" stroke="#1f3a14" stroke-width="4" stroke-linecap="round"/><circle cx="62" cy="70" r="4" fill="#1f3a14"/><circle cx="78" cy="70" r="4" fill="#1f3a14"/><path d="M60 88 Q70 80 80 88" fill="none" stroke="#1f3a14" stroke-width="3.5" stroke-linecap="round"/></svg>`,
+  polvo: `<svg viewBox="0 0 140 140" role="img" aria-label="Polvo Trapalhão"><ellipse cx="70" cy="134" rx="46" ry="5" fill="#000" opacity=".25"/><g fill="none" stroke="#8e5bc8" stroke-width="10" stroke-linecap="round"><path d="M46 82 Q30 100 36 118 Q40 126 30 128"/><path d="M58 88 Q50 110 58 126"/><path d="M70 90 Q70 112 76 128"/><path d="M82 88 Q92 108 86 126"/><path d="M94 82 Q112 98 106 118 Q104 126 114 128"/></g><ellipse cx="70" cy="58" rx="38" ry="36" fill="#9a66d6"/><circle cx="50" cy="40" r="6" fill="#b892e6"/><circle cx="92" cy="46" r="5" fill="#b892e6"/><circle cx="82" cy="30" r="4" fill="#b892e6"/><circle cx="56" cy="62" r="11" fill="#fff"/><circle cx="86" cy="62" r="11" fill="#fff"/><circle cx="59" cy="64" r="5" fill="#24113a"/><circle cx="83" cy="60" r="5" fill="#24113a"/><ellipse cx="70" cy="82" rx="6" ry="5" fill="#5d2f93"/><circle cx="112" cy="30" r="5" fill="none" stroke="#bfe6ff" stroke-width="2"/><circle cx="120" cy="16" r="3.5" fill="none" stroke="#bfe6ff" stroke-width="2"/></svg>`,
+  aranha: `<svg viewBox="0 0 140 140" role="img" aria-label="Aranha Tecelã"><path d="M78 0 V58" stroke="#e7e2f5" stroke-width="1.5" opacity=".7"/><ellipse cx="74" cy="132" rx="46" ry="5" fill="#000" opacity=".28"/><g fill="none" stroke="#3a2d3f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M60 80 L36 60 L18 84"/><path d="M58 86 L30 80 L14 106"/><path d="M60 92 L34 100 L24 126"/><path d="M64 96 L46 114 L44 130"/><path d="M92 80 L116 60 L132 84"/><path d="M94 86 L122 80 L136 106"/><path d="M92 92 L118 100 L126 126"/><path d="M88 96 L106 114 L108 130"/></g><ellipse cx="88" cy="86" rx="28" ry="24" fill="#4a3a52"/><path d="M82 74 L94 74 L88 92 Z" fill="#f2b632"/><ellipse cx="60" cy="86" rx="18" ry="16" fill="#5a4862"/><circle cx="53" cy="80" r="6" fill="#ffe38a"/><circle cx="67" cy="80" r="6" fill="#ffe38a"/><circle cx="54" cy="81" r="2.6" fill="#1b1220"/><circle cx="66" cy="81" r="2.6" fill="#1b1220"/><circle cx="48" cy="90" r="2.6" fill="#ffe38a"/><circle cx="72" cy="90" r="2.6" fill="#ffe38a"/><path d="M56 96 L58 102 L60 96 Z M62 96 L64 102 L66 96 Z" fill="#fff"/></svg>`,
+  golem: `<svg viewBox="0 0 140 140" role="img" aria-label="Golem de Pedra"><ellipse cx="70" cy="132" rx="50" ry="7" fill="#000" opacity=".25"/><rect x="30" y="58" width="80" height="54" rx="16" fill="#8a8f99"/><rect x="44" y="16" width="52" height="46" rx="14" fill="#9aa0aa"/><rect x="8" y="62" width="26" height="46" rx="12" fill="#7a7f89"/><rect x="106" y="62" width="26" height="46" rx="12" fill="#7a7f89"/><rect x="38" y="108" width="24" height="22" rx="8" fill="#6f737c"/><rect x="78" y="108" width="24" height="22" rx="8" fill="#6f737c"/><path d="M52 74 L64 84 L58 96 M88 70 L80 82" stroke="#5f636b" stroke-width="3" fill="none"/><rect x="54" y="32" width="12" height="8" rx="3" fill="#f2a23a"/><rect x="74" y="32" width="12" height="8" rx="3" fill="#f2a23a"/><path d="M56 50 L84 50" stroke="#4f535a" stroke-width="4" stroke-linecap="round"/><circle cx="96" cy="24" r="6" fill="#6b9a52"/><circle cx="102" cy="28" r="4" fill="#6b9a52"/></svg>`,
+  fantasma: `<svg viewBox="0 0 140 140" role="img" aria-label="Fantasma Gelado"><ellipse cx="70" cy="134" rx="34" ry="4" fill="#4a7a96" opacity=".25"/><path d="M28 112 Q24 70 34 46 Q46 18 70 18 Q96 18 106 46 Q116 70 112 112 Q104 104 98 114 Q90 104 84 116 Q76 104 70 116 Q62 104 56 116 Q50 104 42 114 Q36 104 28 112 Z" fill="#e6f5ff" stroke="#9cc9e6" stroke-width="3"/><path d="M34 70 Q20 74 18 62" fill="none" stroke="#e6f5ff" stroke-width="9" stroke-linecap="round"/><path d="M106 70 Q120 74 122 62" fill="none" stroke="#e6f5ff" stroke-width="9" stroke-linecap="round"/><ellipse cx="56" cy="58" rx="7" ry="10" fill="#22324a"/><ellipse cx="84" cy="58" rx="7" ry="10" fill="#22324a"/><circle cx="58" cy="55" r="2" fill="#fff"/><circle cx="86" cy="55" r="2" fill="#fff"/><ellipse cx="70" cy="80" rx="7" ry="8" fill="#22324a"/><path d="M48 42 Q56 36 64 42" fill="none" stroke="#9cc9e6" stroke-width="3" stroke-linecap="round"/><path d="M76 42 Q84 36 92 42" fill="none" stroke="#9cc9e6" stroke-width="3" stroke-linecap="round"/><g stroke="#ffffff" stroke-width="2" stroke-linecap="round"><path d="M14 30 L22 30 M18 26 L18 34"/><path d="M120 22 L128 22 M124 18 L124 26"/><path d="M126 96 L132 96 M129 93 L129 99"/></g></svg>`,
+  dragao: `<svg viewBox="0 0 140 140" role="img" aria-label="Dragão de Fumaça"><ellipse cx="80" cy="133" rx="48" ry="6" fill="#000" opacity=".28"/><path d="M104 112 Q130 116 132 96 Q133 84 124 80" fill="none" stroke="#9c2d25" stroke-width="10" stroke-linecap="round"/><path d="M118 72 L134 76 L124 90 Z" fill="#f2b632"/><path d="M90 66 Q98 22 134 18 Q124 32 130 40 Q118 42 122 54 Q108 52 106 68 Z" fill="#6e1f1b"/><ellipse cx="84" cy="96" rx="31" ry="28" fill="#b23a2e"/><rect x="92" y="112" width="16" height="18" rx="7" fill="#9c2d25"/><rect x="62" y="114" width="15" height="16" rx="6" fill="#9c2d25"/><path d="M62 130 L65 124 L68 130 Z M70 130 L73 124 L76 130 Z M94 130 L97 124 L100 130 Z M102 130 L105 124 L108 130 Z" fill="#fff4e4"/><ellipse cx="74" cy="102" rx="16" ry="20" fill="#f2c27a"/><path d="M62 94 H86 M60 102 H88 M62 110 H86" stroke="#d89a52" stroke-width="2.5"/><path d="M96 70 L102 60 L106 72 Z M106 78 L114 72 L114 84 Z M112 88 L120 86 L116 96 Z" fill="#f2b632"/><path d="M84 74 Q94 46 116 42 Q110 54 116 60 Q104 62 106 72 Q96 72 94 82 Z" fill="#8e2a24"/><path d="M64 86 Q50 72 54 56 L74 58 Q74 74 82 84 Z" fill="#b23a2e"/><path d="M40 40 Q58 30 74 42 Q82 52 74 62 Q62 70 42 68 Q22 68 16 60 Q14 52 22 48 Q30 44 40 40 Z" fill="#c2463a"/><path d="M60 36 Q68 18 84 16 Q74 26 72 40 Z" fill="#f1e2c4"/><path d="M50 36 Q50 20 60 12 Q58 24 58 36 Z" fill="#e6d2a6"/><path d="M72 58 L86 54 L78 64 Z" fill="#f2b632"/><ellipse cx="52" cy="49" rx="7.5" ry="6.5" fill="#f2d33a"/><ellipse cx="50.5" cy="49" rx="2.6" ry="5" fill="#2a0a0a"/><path d="M42 41 L60 45" stroke="#6e1f1b" stroke-width="4" stroke-linecap="round"/><path d="M18 60 Q34 67 54 62" fill="none" stroke="#6e1f1b" stroke-width="3" stroke-linecap="round"/><path d="M26 62 L28 69 L31 63 Z M38 64 L40 71 L43 64 Z" fill="#fff"/><circle cx="22" cy="54" r="2.2" fill="#6e1f1b"/><g class="smoke" fill="#b8aca6"><circle cx="12" cy="44" r="6"/><circle cx="8" cy="34" r="5"/><circle cx="14" cy="24" r="4"/></g></svg>`
+};
+const shamanSVG = k => `<svg viewBox="0 0 120 160" role="img" aria-label="Xamã">
+<defs><linearGradient id="wood-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eda05a"/><stop offset="1" stop-color="#b85d27"/></linearGradient><linearGradient id="gem-${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6fffb"/><stop offset=".45" stop-color="#3fd8c6"/><stop offset="1" stop-color="#0f7d70"/></linearGradient></defs>
+<ellipse cx="58" cy="155" rx="34" ry="5" fill="#000" opacity=".28"/>
+<g class="sh-body">
+<rect x="42" y="124" width="10" height="24" rx="5" fill="#8a5a36"/><rect x="64" y="124" width="10" height="24" rx="5" fill="#8a5a36"/>
+<rect x="41" y="138" width="12" height="4" rx="2" fill="#3fd8c6"/><rect x="63" y="138" width="12" height="4" rx="2" fill="#3fd8c6"/>
+<ellipse cx="46" cy="150" rx="10" ry="5" fill="#3b2416"/><ellipse cx="70" cy="150" rx="10" ry="5" fill="#3b2416"/>
+<path d="M28 112 L92 112 L96 134 L90 130 L85 137 L79 130 L73 137 L67 130 L61 137 L55 130 L49 137 L43 130 L37 137 L31 130 L24 134 Z" fill="#dcb86c" stroke="#8f6a2e" stroke-width="2" stroke-linejoin="round"/>
+<path d="M37 115 L35 128 M49 115 L48 131 M61 115 L61 131 M73 115 L74 131 M85 115 L87 128" stroke="#a9803c" stroke-width="2" stroke-linecap="round"/>
+<polygon points="24.1,57.5 3.7,46.0 27.1,45.4" fill="#f2b632" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="27.6,44.4 12.9,26.2 34.9,34.2" fill="#e06a2a" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="35.6,33.5 28.8,11.1 46.2,26.8" fill="#f2b632" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="47.2,26.4 49.0,3.0 59.4,24.0" fill="#e06a2a" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="60.5,24.0 70.9,3.0 72.8,26.3" fill="#f2b632" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="73.8,26.7 91.2,11.1 84.3,33.5" fill="#e06a2a" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="85.1,34.2 107.0,26.1 92.4,44.3" fill="#f2b632" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/><polygon points="92.9,45.3 116.3,45.9 95.9,57.4" fill="#e06a2a" stroke="#5a2a12" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M19 62 A41 41 0 0 1 101 62 L100 86 Q98 116 60 128 Q22 116 20 86 Z" fill="url(#wood-${k})" stroke="#5a2a12" stroke-width="4"/>
+<path d="M30 40 Q34 70 30 100 M90 40 Q86 70 90 100" stroke="#c9733a" stroke-width="2" fill="none" opacity=".7"/>
+<circle cx="48" cy="33" r="3" fill="#fff4e4"/><circle cx="60" cy="29" r="3" fill="#fff4e4"/><circle cx="72" cy="33" r="3" fill="#fff4e4"/>
+<path d="M24 50 Q41 34 58 47 L62 47 Q79 34 96 50 L96 57 Q79 45 62 55 L58 55 Q41 45 24 57 Z" fill="#8e4420"/>
+<ellipse cx="42" cy="64" rx="11" ry="12" fill="#fff"/><ellipse cx="78" cy="64" rx="11" ry="12" fill="#fff"/>
+<circle cx="46" cy="66" r="5.5" fill="#1d1410"/><circle cx="82" cy="66" r="5.5" fill="#1d1410"/><circle cx="48" cy="64" r="1.8" fill="#fff"/><circle cx="84" cy="64" r="1.8" fill="#fff"/>
+<path d="M60 64 L53 81 Q60 85 67 81 Z" fill="#9c4f22"/>
+<path d="M27 76 V84 M32 77 V86 M37 78 V86 M83 78 V86 M88 77 V86 M93 76 V84" stroke="#3fd8c6" stroke-width="3" stroke-linecap="round"/>
+<path d="M33 90 Q60 122 87 90 Q60 100 33 90 Z" fill="#2a1206"/>
+<path d="M36 92 Q60 101 84 92 L82 98 Q60 107 38 98 Z" fill="#fff8ea"/>
+<path d="M44 95 L44 101 M52 97 L52 104 M60 98 L60 105 M68 97 L68 104 M76 95 L76 101" stroke="#2a1206" stroke-width="1.6"/>
+<path d="M50 114 L54 118 L58 114 L62 118 L66 114 L70 118" fill="none" stroke="#f2b632" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M21 94 Q11 92 9 82" fill="none" stroke="#8a5a36" stroke-width="6" stroke-linecap="round"/><circle cx="9" cy="80" r="5" fill="#8a5a36"/>
+<path d="M99 97 Q107 95 105 88" fill="none" stroke="#8a5a36" stroke-width="6" stroke-linecap="round"/>
+</g>
+<g class="sh-staff">
+<path d="M105 152 Q101 124 104 98 Q107 72 104 50" fill="none" stroke="#6b3f22" stroke-width="6.5" stroke-linecap="round"/>
+<path d="M103.5 146 Q100.5 122 103 100" fill="none" stroke="#9a6438" stroke-width="1.6" stroke-linecap="round"/>
+<ellipse cx="102.6" cy="118" rx="2.6" ry="1.6" fill="#4f2c16"/><ellipse cx="105.6" cy="76" rx="2.4" ry="1.5" fill="#4f2c16"/>
+<path d="M101 62 L108 60 M101 66 L108 64" stroke="#3fd8c6" stroke-width="2.6" stroke-linecap="round"/>
+<circle class="sh-glow" cx="104" cy="30" r="17" fill="#3fd8c6" opacity=".2"/>
+<polygon class="sh-gem" points="104,14 111.5,30 104,46 96.5,30" fill="url(#gem-${k})" stroke="#0d5f55" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M104 14 L104 46 M96.5 30 L111.5 30" stroke="#ffffff" stroke-width="1" opacity=".55"/>
+<path d="M104 52 Q94 46 95 33 Q95.5 26 99 23" fill="none" stroke="#6b3f22" stroke-width="5" stroke-linecap="round"/>
+<path d="M104 52 Q114 46 113 33 Q112.5 26 109 23" fill="none" stroke="#6b3f22" stroke-width="5" stroke-linecap="round"/>
+<path d="M98 47 Q93 56 93.5 66" fill="none" stroke="#f1e2c4" stroke-width="1.3"/>
+<circle cx="95.6" cy="53" r="2.4" fill="#d8433b"/><circle cx="94" cy="58.5" r="2.4" fill="#f2b632"/><circle cx="93.6" cy="64.5" r="2.8" fill="#3fd8c6"/>
+<circle cx="104.5" cy="87" r="5.2" fill="#8a5a36"/>
+</g>
+</svg>`;
+const SCENE_ART = {
+  pantano: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M0 110 Q50 80 100 100 T200 95 T300 100 T400 90 L400 150 L0 150 Z" fill="#4c7a5a" opacity=".7"/><path d="M40 150 L44 70 L48 150 Z M330 150 L335 60 L340 150 Z M360 150 L363 85 L366 150 Z" fill="#355a3c"/><ellipse cx="200" cy="140" rx="120" ry="10" fill="#7fb3a8" opacity=".6"/></svg>`,
+  mangue: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><circle cx="205" cy="34" r="18" fill="#fff3c4"/><path d="M0 120 Q60 112 120 120 T240 118 T400 120 L400 150 L0 150 Z" fill="#5fa9b8" opacity=".8"/><g fill="#3f6a3a"><ellipse cx="40" cy="70" rx="38" ry="22"/><ellipse cx="370" cy="78" rx="40" ry="22"/></g><g stroke="#5a3f28" stroke-width="3" fill="none"><path d="M30 86 Q26 110 18 130 M40 88 Q42 112 36 132 M50 86 Q58 110 62 130"/><path d="M360 94 Q354 116 346 134 M372 96 Q374 118 370 136 M384 94 Q392 114 396 132"/></g></svg>`,
+  caverna: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M0 150 L30 100 L60 150 Z M320 150 L350 95 L380 150 Z" fill="#2c2140"/><circle cx="210" cy="60" r="3" fill="#a6f0ff" opacity=".7"/><circle cx="150" cy="80" r="2" fill="#a6f0ff" opacity=".6"/><circle cx="270" cy="70" r="2" fill="#a6f0ff" opacity=".6"/></svg>`,
+  floresta: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M0 150 L25 40 L50 150 Z M45 150 L75 20 L105 150 Z M290 150 L320 30 L350 150 Z M340 150 L370 50 L400 150 Z" fill="#244a33"/><path d="M110 150 L130 70 L150 150 Z M250 150 L270 60 L290 150 Z" fill="#2f5c3e" opacity=".8"/></svg>`,
+  deserto: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><circle cx="190" cy="40" r="22" fill="#fff1c0"/><path d="M0 120 Q80 80 160 112 Q240 140 320 100 Q360 84 400 104 L400 150 L0 150 Z" fill="#e8b46a"/><path d="M0 136 Q100 112 200 132 T400 128 L400 150 L0 150 Z" fill="#dca05a"/></svg>`,
+  rio: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><g fill="#2f8a5a" opacity=".8"><path d="M30 150 Q20 110 34 80 Q38 110 44 150 Z"/><path d="M50 150 Q48 120 60 96 Q60 124 64 150 Z"/><path d="M350 150 Q340 104 356 74 Q360 108 366 150 Z"/><path d="M372 150 Q372 118 384 100 Q384 126 388 150 Z"/></g><g fill="none" stroke="#bfe6ff" stroke-width="2" opacity=".7"><circle cx="200" cy="60" r="5"/><circle cx="214" cy="40" r="3.5"/><circle cx="120" cy="80" r="4"/><circle cx="280" cy="70" r="3"/></g></svg>`,
+  noite: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><circle cx="90" cy="34" r="16" fill="#f4f0d6"/><circle cx="98" cy="30" r="14" fill="#1d2444"/><g fill="#ffffff"><circle cx="160" cy="20" r="1.5"/><circle cx="240" cy="36" r="1.2"/><circle cx="300" cy="14" r="1.5"/><circle cx="350" cy="44" r="1.2"/><circle cx="40" cy="60" r="1"/></g><path d="M0 150 L20 70 L40 150 Z M300 150 L330 60 L360 150 Z M350 150 L376 80 L400 150 Z" fill="#11162b"/></svg>`,
+  montanha: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M0 150 L70 40 L130 110 L190 30 L260 120 L320 50 L400 130 L400 150 Z" fill="#6f8597"/><path d="M70 40 L84 62 L60 58 Z M190 30 L206 56 L178 52 Z M320 50 L334 72 L308 68 Z" fill="#f3f7fb"/></svg>`,
+  neve: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M0 130 Q100 96 200 124 T400 112 L400 150 L0 150 Z" fill="#ffffff"/><g fill="#4f7a8a"><path d="M30 130 L44 90 L58 130 Z"/><path d="M340 124 L356 80 L372 124 Z"/><path d="M366 128 L378 96 L390 128 Z"/></g><g fill="#ffffff"><path d="M38 110 L44 92 L50 110 Z"/><path d="M349 100 L356 82 L363 100 Z"/></g><g fill="#ffffff" opacity=".9"><circle cx="120" cy="30" r="2"/><circle cx="220" cy="50" r="2.5"/><circle cx="300" cy="24" r="2"/><circle cx="170" cy="70" r="1.6"/></g></svg>`,
+  vulcao: `<svg class="far" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M120 150 L180 40 L220 40 L280 150 Z" fill="#3a1a18"/><path d="M180 40 Q200 30 220 40 L212 60 Q200 52 188 60 Z" fill="#ff8a2a"/><path d="M196 46 Q190 80 176 110 M206 46 Q214 86 230 116" stroke="#ff6a1a" stroke-width="4" fill="none"/><circle cx="190" cy="20" r="10" fill="#5a4a46" opacity=".6"/><circle cx="210" cy="8" r="13" fill="#5a4a46" opacity=".5"/></svg>`
+};
+
+// 10 fases: o monstro monta palavras mais rápido a cada fase
+// letter = ms por letra; think = ms antes de começar; lr / sr = tamanho das palavras dele (letras / sílabas)
+const PHASES = [
+  { name: "Lodo Pegajoso",      short: "Lodo",       g: "o", art: "lodo",       scene: "pantano",  hp: 16, letter: 1600, think: 2800, lr: [3, 4], sr: [2, 2] },
+  { name: "Caranguejo Gigante", short: "Caranguejo", g: "o", art: "caranguejo", scene: "mangue",   hp: 20, letter: 1450, think: 2600, lr: [3, 4], sr: [2, 2] },
+  { name: "Morcegão",           short: "Morcegão",   g: "o", art: "morcego",    scene: "caverna",  hp: 24, letter: 1320, think: 2400, lr: [3, 5], sr: [2, 3] },
+  { name: "Cogumelo Bravo",     short: "Cogumelo",   g: "o", art: "cogumelo",   scene: "floresta", hp: 28, letter: 1200, think: 2200, lr: [3, 5], sr: [2, 3] },
+  { name: "Cacto Raivoso",      short: "Cacto",      g: "o", art: "cacto",      scene: "deserto",  hp: 32, letter: 1090, think: 2000, lr: [4, 5], sr: [2, 3] },
+  { name: "Polvo Trapalhão",    short: "Polvo",      g: "o", art: "polvo",      scene: "rio",      hp: 36, letter: 990,  think: 1850, lr: [4, 5], sr: [3, 3] },
+  { name: "Aranha Tecelã",      short: "Aranha",     g: "a", art: "aranha",     scene: "noite",    hp: 40, letter: 900,  think: 1700, lr: [4, 6], sr: [3, 3] },
+  { name: "Golem de Pedra",     short: "Golem",      g: "o", art: "golem",      scene: "montanha", hp: 44, letter: 820,  think: 1550, lr: [4, 6], sr: [3, 3] },
+  { name: "Fantasma Gelado",    short: "Fantasma",   g: "o", art: "fantasma",   scene: "neve",     hp: 48, letter: 750,  think: 1420, lr: [5, 6], sr: [3, 4] },
+  { name: "Dragão de Fumaça",   short: "Dragão",     g: "o", art: "dragao",     scene: "vulcao",   hp: 54, letter: 690,  think: 1300, lr: [5, 7], sr: [3, 4] }
+];
+const CALM = 1.8, SYL_SLOW = 1.9;
+const PLAYER_HP = 40;
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const art = P => P.g === "a" ? "a" : "o";
+const um = P => P.g === "a" ? "Uma" : "Um";
+const de = P => P.g === "a" ? "da" : "do";
+
+// dano: modo letras conta letras, modo sílabas conta sílabas
+const DMG_L = [0, 0, 1, 2, 4, 7, 11, 16, 22, 29];
+const FOE_L = [0, 0, 1, 2, 4, 6, 9, 12, 16];
+const DMG_S = [0, 1, 4, 9, 16, 25];
+const FOE_S = [0, 1, 3, 6, 10, 14];
+function playerDmg(mode, n) { return mode === "silabas" ? (n >= 5 ? 25 + (n - 5) * 10 : DMG_S[n] || 0) : (n >= 10 ? 29 + (n - 9) * 8 : DMG_L[n] || 0); }
+function foeDmg(mode, n) { return mode === "silabas" ? FOE_S[Math.min(n, 5)] : FOE_L[Math.min(n, 8)] || 0; }
+
+const BAG = { a: 14, e: 12, o: 10, s: 8, r: 7, i: 6, n: 5, d: 5, m: 5, t: 5, u: 4, c: 4, l: 3, p: 3, v: 2, g: 1.3, h: 1, q: .7, b: 1.2, f: 1, z: .5, j: .4, x: .3 };
+const VOWELS = new Set(["a", "e", "i", "o", "u"]);
+const BAG_LIST = Object.entries(BAG);
+const BAG_TOTAL = BAG_LIST.reduce((s, [, w]) => s + w, 0);
+function randLetter() { let r = Math.random() * BAG_TOTAL; for (const [ch, w] of BAG_LIST) { if ((r -= w) <= 0) return ch; } return "a"; }
+function randVowel() { const v = ["a", "a", "e", "e", "o", "o", "i", "u"]; return v[Math.floor(Math.random() * v.length)]; }
+function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+const $ = id => document.getElementById(id);
+const els = {
+  app: $("app"), title: $("title"), menu: $("menu"), game: $("game"), phases: $("phases"), progressLabel: $("progressLabel"), modeEyebrow: $("modeEyebrow"),
+  resetBtn: $("resetBtn"), topbar: $("topbar"), brandBtn: $("brandBtn"), brandName: $("brandName"), homeBtn: $("homeBtn"),
+  logo: $("logo"), heroShaman: $("heroShaman"), heroFoe: $("heroFoe"), shamanArt: $("shamanArt"),
+  gameChips: $("gameChips"), phasePill: $("phasePill"), pauseBtn: $("pauseBtn"), menuBtn: $("menuBtn"),
+  tiles: $("tiles"), slots: $("slots"), msg: $("msg"), power: $("power"), legend: $("legend"),
+  mTiles: $("mTiles"), mSlots: $("mSlots"), foeStatus: $("foeStatus"), foeTrack: $("foeTrack"), foeSpeed: $("foeSpeed"), foeBoardName: $("foeBoardName"),
+  pHp: $("pHp"), mHp: $("mHp"), pHpTxt: $("pHpTxt"), mHpTxt: $("mHpTxt"), mName: $("mName"),
+  scene: $("scene"), monsterArt: $("monsterArt"), shaman: $("shaman"), monster: $("monster"),
+  pBubble: $("pBubble"), mBubble: $("mBubble"), arena: $("arena"),
+  overlay: $("overlay"), ovTitle: $("ovTitle"), ovText: $("ovText"), ovRow: $("ovRow"),
+  btnCast: $("btnCast"), btnBack: $("btnBack"), btnClear: $("btnClear"), btnSwap: $("btnSwap"),
+  report: $("report"), repTitle: $("repTitle"), repSub: $("repSub"), repStats: $("repStats"), repMine: $("repMine"), repFoe: $("repFoe"), repFoeH: $("repFoeH"),
+  repBad: $("repBad"), repBadWrap: $("repBadWrap"), repRow: $("repRow")
+};
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let S = null;
+let nextId = 1;
+let runSeq = 0;
+// Nome do jogo: cada item é uma linha do logo (a 1ª em letras douradas, a 2ª em pecinhas)
+const GAME_NAME = ["Abraca", "palavra"];
+let calm = load("xama-calmo", false) === true;
+let mode = load("xama-modo", "letras") === "silabas" ? "silabas" : "letras";
+let progress = (() => { // maior índice de fase liberado, por modo
+  const p = load("xama-progresso", {}), ok = v => Number.isInteger(v) && v >= 0 ? Math.min(v, 10) : 0;
+  return { letras: ok(p && p.letras), silabas: ok(p && p.silabas) };
+})();
+
+function load(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+// ---------- quadros ----------
+function newTile(ch) { return { id: nextId++, ch, fresh: true }; }
+function fixVowels(tiles, freshIds, min) {
+  let need = min - tiles.filter(t => VOWELS.has(t.ch)).length;
+  const pool = tiles.filter(t => freshIds.has(t.id) && !VOWELS.has(t.ch));
+  while (need > 0 && pool.length) { pool.pop().ch = randVowel(); need--; }
+}
+function sylFill(k) {
+  const out = [];
+  let guard = 0;
+  while (out.length < k && guard++ < 200) {
+    const left = k - out.length;
+    if (left === 1) { out.push(rnd(SYL_POOL)); break; }
+    const w = rnd(SYL_WORDS);
+    if (w.length <= left) out.push(...w);
+  }
+  while (out.length < k) out.push(rnd(SYL_POOL));
+  return shuffle(out);
+}
+function makeBoard(md, n) {
+  if (md === "silabas") return sylFill(n).map(newTile);
+  const t = Array.from({ length: n }, () => newTile(randLetter()));
+  fixVowels(t, new Set(t.map(x => x.id)), Math.round(n * .36));
+  return t;
+}
+function refill(md, tiles, ids) {
+  const set = new Set(ids);
+  if (md === "silabas") {
+    const fresh = sylFill(ids.length);
+    return tiles.map(t => set.has(t.id) ? newTile(fresh.pop()) : t);
+  }
+  const freshIds = new Set();
+  const out = tiles.map(t => { if (!set.has(t.id)) return t; const n = newTile(randLetter()); freshIds.add(n.id); return n; });
+  fixVowels(out, freshIds, Math.round(tiles.length * .36));
+  return out;
+}
+const sizes = md => md === "silabas" ? { me: 16, foe: 12 } : { me: 20, foe: 16 };
+
+// ---------- telas ----------
+function stopGame() { if (S) { S.over = true; S.run = -1; } els.report.hidden = true; hideOverlay(); }
+function showScreen(name) {
+  els.app.classList.remove("screen-title", "screen-menu", "screen-game");
+  els.app.classList.add("screen-" + name);
+  els.title.hidden = name !== "title";
+  els.menu.hidden = name !== "menu";
+  els.game.hidden = name !== "game";
+  els.topbar.hidden = name === "title";
+  els.gameChips.hidden = name !== "game";
+  els.homeBtn.hidden = name !== "menu";
+  window.scrollTo({ top: 0 });
+}
+function buildLogo() {
+  const rot = [-6, 4, -3, 5, -4, 3, -5, 4, -2];
+  const [a, b = ""] = GAME_NAME;
+  const l1 = [...a.toUpperCase()].map((c, i) => c === " " ? '<span class="sp"> </span>'
+    : `<span style="--r:${rot[i % rot.length] * .6}deg;--y:${i % 2 ? -4 : 3}px;--d:${(i * .05).toFixed(2)}s">${c}</span>`).join("");
+  const l2 = [...b.toUpperCase()].map((c, i) => c === " " ? '<span class="sp"> </span>'
+    : `<span style="--r:${rot[(i + 3) % rot.length]}deg;--d:${(.35 + i * .07).toFixed(2)}s;--i:${i}">${c}</span>`).join("");
+  els.logo.innerHTML = `<span class="l1" aria-hidden="true">${l1}</span>${b ? `<span class="l2" aria-hidden="true">${l2}</span>` : ""}`;
+  els.logo.setAttribute("aria-label", GAME_NAME.join(""));
+  els.brandName.textContent = cap(GAME_NAME.join("").toLowerCase());
+}
+function showTitle() {
+  stopGame(); showScreen("title");
+  for (const el of document.querySelectorAll("[data-prog]")) {
+    const n = progress[el.dataset.prog];
+    el.textContent = n >= PHASES.length ? "Todas as 10 fases vencidas!" : n ? `${n} de ${PHASES.length} fases vencidas` : "Começa na fase 1";
+  }
+}
+
+// ---------- tela de fases ----------
+function showMenu() {
+  stopGame(); showScreen("menu");
+  els.app.classList.toggle("silabas", mode === "silabas");
+  els.modeEyebrow.textContent = mode === "silabas" ? "Modo sílabas" : "Modo letras";
+  const unlocked = progress[mode] || 0;
+  const won = Math.min(unlocked, PHASES.length);
+  els.progressLabel.textContent = `${won} de ${PHASES.length} vencidas`;
+  els.phases.innerHTML = "";
+  PHASES.forEach((P, i) => {
+    const b = document.createElement("button");
+    const isWon = i < unlocked, isNext = i === unlocked, locked = i > unlocked;
+    b.className = "phase-card" + (isWon ? " won" : "") + (isNext ? " next" : "");
+    b.disabled = locked;
+    b.innerHTML = `${locked ? '<svg class="lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="9" rx="2" fill="#c9b79b"/><path d="M7 9 V6 a3 3 0 0 1 6 0 V9" fill="none" stroke="#c9b79b" stroke-width="2"/></svg>' : ""}
+      <div class="art">${MONSTERS[P.art]}</div>
+      <span class="num">Fase ${i + 1}</span>
+      <span class="nm">${P.name}</span>
+      <span class="st">${isWon ? "Vencida" : isNext ? "Jogar" : "Bloqueada"}</span>`;
+    b.setAttribute("aria-label", `Fase ${i + 1}: ${P.name}. ${isWon ? "Vencida" : isNext ? "Disponível" : "Bloqueada, vença a fase " + i}`);
+    b.addEventListener("click", () => { if (!locked) startPhase(i); });
+    els.phases.appendChild(b);
+  });
+}
+function setMode(m) { mode = m; save("xama-modo", mode); showMenu(); }
+
+// ---------- fases ----------
+function startPhase(i) {
+  const P = PHASES[i], sz = sizes(mode);
+  S = {
+    run: ++runSeq, mode, phase: i, php: PLAYER_HP, mhp: P.hp, mmax: P.hp,
+    tiles: makeBoard(mode, sz.me), sel: [],
+    mtiles: makeBoard(mode, sz.foe), msel: [], mtarget: 0,
+    paused: true, over: false, casting: false,
+    log: { mine: [], foe: [], bad: [] }, activeMs: 0, t0: 0
+  };
+  els.report.hidden = true;
+  showScreen("game");
+  els.app.classList.toggle("silabas", mode === "silabas");
+  els.scene.dataset.scene = P.scene;
+  els.scene.innerHTML = SCENE_ART[P.scene];
+  els.monsterArt.innerHTML = MONSTERS[P.art];
+  els.mName.textContent = P.name;
+  els.foeBoardName.textContent = `Quadro ${de(P)} ${P.short}`;
+  els.phasePill.textContent = `Fase ${i + 1}/${PHASES.length} · ${mode === "silabas" ? "Sílabas" : "Letras"}`;
+  els.btnSwap.title = mode === "silabas" ? "Trocar todas as sílabas" : "Trocar todas as letras";
+  els.legend.innerHTML = mode === "silabas"
+    ? "Dano pelo número de sílabas<br>2 sílabas <b>4</b> · 3 <b>9</b> · 4 <b>16</b> · 5 <b>25</b>"
+    : "Dano por tamanho da palavra<br>2 letras <b>1</b> · 3 <b>2</b> · 4 <b>4</b> · 5 <b>7</b> · 6 <b>11</b> · 7 <b>16</b> · 8 <b>22</b> · 9 <b>29</b> · 10+ <b>37</b>";
+  updateSpeedLabel();
+  setMsg(""); hideBubble(els.pBubble); hideBubble(els.mBubble);
+  render(); renderFoe();
+  const ele = P.g === "a" ? "ela" : "ele";
+  showOverlay(`Fase ${i + 1}: ${P.name}`,
+    `${um(P)} ${P.name} apareceu! ${cap(ele)} monta ${speedText()}. Forme palavras ${mode === "silabas" ? "juntando sílabas" : "com as suas letras"} e derrube ${ele} primeiro.`,
+    [{ label: "Começar", cls: "cast", action: play }, { label: "Escolher fase", action: showMenu }]);
+}
+function unitWord() { return S.mode === "silabas" ? "sílaba" : "letra"; }
+function perUnitMs() { const P = PHASES[S.phase]; return P.letter * (calm ? CALM : 1) * (S.mode === "silabas" ? SYL_SLOW : 1); }
+function speedText() { const sec = (perUnitMs() / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }); return `1 ${unitWord()} a cada ${sec} s`; }
+function updateSpeedLabel() { if (S) els.foeSpeed.textContent = speedText(); }
+function play() {
+  S.paused = false; S.t0 = performance.now(); hideOverlay(); els.pauseBtn.textContent = "Pausar";
+  setMsg(`Forme palavras antes ${de(PHASES[S.phase])} ${PHASES[S.phase].short}!`);
+  render();
+  monsterLoop(S.run);
+}
+
+// ---------- desenho ----------
+function tileHTML(ch) { return ch; }
+function render() {
+  els.pHp.style.width = (100 * Math.max(0, S.php) / PLAYER_HP) + "%";
+  els.mHp.style.width = (100 * Math.max(0, S.mhp) / S.mmax) + "%";
+  els.pHpTxt.textContent = `${Math.max(0, S.php)} / ${PLAYER_HP}`;
+  els.mHpTxt.textContent = `${Math.max(0, S.mhp)} / ${S.mmax}`;
+  const locked = S.paused || S.over;
+  const selSet = new Set(S.sel);
+  els.tiles.innerHTML = "";
+  els.tiles.classList.toggle("locked", locked);
+  for (const t of S.tiles) {
+    const b = document.createElement("button");
+    b.className = "tile" + (selSet.has(t.id) ? " picked" : "") + (t.fresh ? " fresh" : "");
+    b.dataset.id = t.id; b.innerHTML = tileHTML(t.ch);
+    b.setAttribute("aria-label", (S.mode === "silabas" ? "Sílaba " : "Letra ") + t.ch.toUpperCase());
+    b.disabled = locked || selSet.has(t.id);
+    els.tiles.appendChild(b); t.fresh = false;
+  }
+  els.slots.innerHTML = "";
+  const min = S.mode === "silabas" ? 4 : 8;
+  const total = Math.min(12, Math.max(min, S.sel.length + 1));
+  for (let k = 0; k < total; k++) {
+    const id = S.sel[k], s = document.createElement("button");
+    if (id !== undefined) {
+      const t = S.tiles.find(x => x.id === id);
+      s.className = "slot"; s.innerHTML = tileHTML(t.ch); s.title = "Tirar esta peça"; s.dataset.idx = k; s.disabled = locked;
+    } else { s.className = "slot empty"; s.tabIndex = -1; s.disabled = true; s.setAttribute("aria-hidden", "true"); }
+    els.slots.appendChild(s);
+  }
+  els.power.textContent = "dano " + playerDmg(S.mode, units());
+  els.btnCast.disabled = locked || S.sel.length < 1 || currentWord().length < 2;
+  els.btnBack.disabled = locked || !S.sel.length;
+  els.btnClear.disabled = locked || !S.sel.length;
+  els.btnSwap.disabled = locked;
+}
+function renderFoe() {
+  const selSet = new Set(S.msel);
+  els.mTiles.innerHTML = "";
+  for (const t of S.mtiles) {
+    const d = document.createElement("div");
+    d.className = "tile" + (selSet.has(t.id) ? " picked" : "") + (t.fresh ? " fresh" : "");
+    d.innerHTML = tileHTML(t.ch); els.mTiles.appendChild(d); t.fresh = false;
+  }
+  els.mSlots.innerHTML = "";
+  const total = Math.max(S.mtarget, S.mode === "silabas" ? 2 : 4);
+  for (let k = 0; k < total; k++) {
+    const id = S.msel[k], s = document.createElement("div");
+    if (id !== undefined) { const t = S.mtiles.find(x => x.id === id); s.className = "slot"; s.innerHTML = tileHTML(t.ch); }
+    else s.className = "slot empty";
+    els.mSlots.appendChild(s);
+  }
+  els.foeTrack.style.width = S.mtarget ? (100 * S.msel.length / S.mtarget) + "%" : "0%";
+}
+function currentWord() { return S.sel.map(id => S.tiles.find(t => t.id === id).ch).join(""); }
+function units() { return S.mode === "silabas" ? S.sel.length : currentWord().length; }
+function setMsg(text, kind) { els.msg.textContent = text; els.msg.className = "banner" + (kind ? " " + kind : ""); }
+
+// ---------- jogador ----------
+const canAct = () => S && !S.paused && !S.over;
+function pick(id) { if (!canAct() || S.sel.includes(id)) return; S.sel.push(id); render(); }
+function unpickAt(idx) { if (!canAct()) return; S.sel.splice(idx); render(); }
+function backspace() { if (!canAct() || !S.sel.length) return; S.sel.pop(); render(); }
+function clearSel() { if (!canAct()) return; S.sel = []; render(); }
+function swapTiles() { if (!canAct()) return; S.sel = []; S.tiles = makeBoard(S.mode, sizes(S.mode).me); render(); setMsg(S.mode === "silabas" ? "Sílabas novas no seu quadro." : "Letras novas no seu quadro."); }
+
+async function cast() {
+  if (!canAct() || S.casting) return;
+  const w = currentWord();
+  if (w.length < 2) return;
+  const n = units();
+  const valid = DICT.has(w) || SYL_SET.has(w);
+  if (!valid) {
+    // palavra errada: o poder não sai e as peças somem da barra
+    els.slots.classList.remove("shake"); void els.slots.offsetWidth; els.slots.classList.add("shake");
+    setTimeout(() => els.slots.classList.remove("shake"), 460);
+    setMsg(`"${w.toUpperCase()}" não é uma palavra que eu conheço. Tente outra.`, "bad");
+    S.log.bad.push(w);
+    S.sel = []; render();
+    return;
+  }
+  const run = S.run, dmg = playerDmg(S.mode, n);
+  const shown = S.mode === "silabas" ? S.sel.map(id => S.tiles.find(t => t.id === id).ch).join("-") : w;
+  S.casting = true;
+  S.log.mine.push({ w, shown, n, dmg });
+  S.tiles = refill(S.mode, S.tiles, S.sel); S.sel = []; render();
+  els.slots.classList.add("cast"); bubble(els.pBubble, w);
+  await shamanAttack(els.shaman);
+  await shoot(els.shaman.querySelector(".sh-gem") || els.shaman, els.monster, "p");
+  els.slots.classList.remove("cast");
+  S.casting = false;
+  if (run !== S.run || S.over) return;
+  S.mhp -= dmg; hitAnim(els.monster); popDamage(els.monster, dmg, "#bff8f0");
+  setMsg(`${w.toUpperCase()}: ${n} ${unitWord()}${n > 1 ? "s" : ""}, ${dmg} de dano!`, "good");
+  render();
+  setTimeout(() => hideBubble(els.pBubble), 700);
+  if (S.mhp <= 0) finishPhase(true);
+}
+
+// ---------- monstro (tempo real) ----------
+class Stop {}
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function sleepP(run, ms) {
+  let left = ms;
+  while (left > 0) {
+    if (run !== S.run || S.over) throw new Stop();
+    if (S.paused) { await wait(100); continue; }
+    const step = Math.min(50, left); await wait(step); left -= step;
+  }
+  if (run !== S.run || S.over) throw new Stop();
+}
+function tokensOf(md, word) { return md === "silabas" ? word : word.split(""); }
+function canBuild(tiles, parts) {
+  const counts = {};
+  for (const t of tiles) counts[t.ch] = (counts[t.ch] || 0) + 1;
+  const c = {};
+  for (const p of parts) { c[p] = (c[p] || 0) + 1; if (c[p] > (counts[p] || 0)) return false; }
+  return true;
+}
+function chooseFoeWord() {
+  const P = PHASES[S.phase];
+  const cands = S.mode === "silabas" ? SYL_WORDS : MONSTER_WORDS.map(w => tokensOf("letras", w));
+  const [lo, hi] = S.mode === "silabas" ? P.sr : P.lr;
+  const size = parts => S.mode === "silabas" ? parts.length : parts.join("").length;
+  let pool = cands.filter(p => size(p) >= lo && size(p) <= hi && canBuild(S.mtiles, p));
+  if (!pool.length) pool = cands.filter(p => size(p) >= 2 && size(p) < lo && canBuild(S.mtiles, p));
+  if (!pool.length) return null;
+  const weighted = [];
+  for (const p of pool) for (let k = 0; k < size(p); k++) weighted.push(p);
+  return rnd(weighted);
+}
+function idsFor(tiles, parts) {
+  const used = new Set(), ids = [];
+  for (const p of parts) { const t = tiles.find(x => x.ch === p && !used.has(x.id)); used.add(t.id); ids.push(t.id); }
+  return ids;
+}
+async function monsterLoop(run) {
+  const P = PHASES[S.phase];
+  try {
+    while (true) {
+      S.msel = []; S.mtarget = 0; renderFoe();
+      els.foeStatus.textContent = `${cap(art(P))} ${P.short} está pensando...`;
+      await sleepP(run, P.think * (calm ? CALM : 1));
+      const parts = chooseFoeWord();
+      if (!parts) { S.mtiles = makeBoard(S.mode, sizes(S.mode).foe); renderFoe(); continue; }
+      const ids = idsFor(S.mtiles, parts);
+      S.mtarget = ids.length; renderFoe(); foeBubble(parts, 0);
+      els.foeStatus.textContent = `${cap(art(P))} ${P.short} está montando uma palavra!`;
+      for (const id of ids) {
+        await sleepP(run, perUnitMs());
+        S.msel.push(id); renderFoe();
+        foeBubble(parts, S.msel.length);
+      }
+      await sleepP(run, 250);
+      const w = parts.join(""), n = S.mode === "silabas" ? parts.length : w.length;
+      const dmg = foeDmg(S.mode, n);
+      foeLunge();
+      await sleepP(run, reduce ? 0 : 220);
+      await shoot(els.monster, els.shaman, "m");
+      if (run !== S.run || S.over) return;
+      S.php -= dmg; hitAnim(els.shaman); popDamage(els.shaman, dmg, "#ffd2c6");
+      S.log.foe.push({ w, shown: S.mode === "silabas" ? parts.join("-") : w, n, dmg });
+      setMsg(`${cap(art(P))} ${P.short} formou ${w.toUpperCase()}: ${dmg} de dano no xamã.`);
+      S.mtiles = refill(S.mode, S.mtiles, ids); S.msel = []; render(); renderFoe();
+      setTimeout(() => hideBubble(els.mBubble), 600);
+      if (S.php <= 0) { finishPhase(false); return; }
+    }
+  } catch (e) { if (!(e instanceof Stop)) throw e; }
+}
+
+// ---------- efeitos ----------
+function center(el) { const a = els.arena.getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height * 0.45 }; }
+async function shoot(fromEl, toEl, cls) {
+  if (reduce) return;
+  const from = center(fromEl), to = center(toEl);
+  const b = document.createElement("div");
+  b.className = "bolt " + cls; b.style.left = (from.x - 13) + "px"; b.style.top = (from.y - 13) + "px";
+  els.arena.appendChild(b);
+  const anim = b.animate([
+    { transform: "translate(0,0) scale(.6)" },
+    { transform: `translate(${(to.x - from.x) / 2}px, ${(to.y - from.y) / 2 - 40}px) scale(1.3)` },
+    { transform: `translate(${to.x - from.x}px, ${to.y - from.y}px) scale(1)` }
+  ], { duration: 480, easing: "ease-in" });
+  await anim.finished; b.remove();
+}
+function popDamage(el, amount, color) {
+  const c = center(el), d = document.createElement("div");
+  d.className = "dmg"; d.textContent = "-" + amount; d.style.left = c.x + "px"; d.style.top = (c.y - 40) + "px";
+  if (color) d.style.color = color;
+  els.arena.appendChild(d); setTimeout(() => d.remove(), 1150);
+}
+// ataque do xamã: recua, gira o cajado para a frente e o cristal brilha; resolve no auge do golpe
+function shamanAttack(root) {
+  const svg = root.querySelector("svg"), staff = root.querySelector(".sh-staff"), glow = root.querySelector(".sh-glow");
+  if (reduce || !svg || !svg.animate) return Promise.resolve();
+  const o = { duration: 460, easing: "ease-out" };
+  svg.animate([{ transform: "none" }, { transform: "translateX(-5px) rotate(-5deg)", offset: .38 }, { transform: "translateX(10px) rotate(6deg) scaleY(.97)", offset: .66 }, { transform: "none" }], o);
+  staff.animate([{ transform: "none" }, { transform: "rotate(-12deg)", offset: .38 }, { transform: "rotate(32deg)", offset: .66 }, { transform: "none" }], o);
+  glow.animate([{ transform: "scale(1)", opacity: .2 }, { transform: "scale(1.3)", opacity: .55, offset: .38 }, { transform: "scale(2.6)", opacity: .95, offset: .66 }, { transform: "scale(1)", opacity: .2 }], o);
+  return wait(300).then(() => sparkBurst(root.querySelector(".sh-gem"), root.closest(".arena, .hero")));
+}
+function sparkBurst(gem, host) {
+  if (!gem || !host) return;
+  const h = host.getBoundingClientRect(), g = gem.getBoundingClientRect();
+  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+  const x = g.left - h.left + g.width / 2, y = g.top - h.top + g.height / 2;
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement("div"), a = (i / 8) * Math.PI * 2 + Math.random() * .4, d = 22 + Math.random() * 18;
+    p.className = "spark-p"; p.style.left = x + "px"; p.style.top = y + "px";
+    host.appendChild(p);
+    p.animate([{ transform: "translate(0,0) scale(1)", opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px) scale(.2)`, opacity: 0 }], { duration: 420, easing: "ease-out" }).finished.then(() => p.remove(), () => p.remove());
+  }
+}
+function foeLunge() {
+  if (reduce || !els.monsterArt.animate) return;
+  els.monsterArt.animate([{ transform: "none" }, { transform: "translateX(8px) scale(.95, 1.05)", offset: .4 }, { transform: "translateX(-18px) scale(1.07, .94)", offset: .75 }, { transform: "none" }], { duration: 400, easing: "ease-out" });
+}
+function hitAnim(el) { el.classList.remove("idle", "hit"); void el.offsetWidth; el.classList.add("hit"); setTimeout(() => { el.classList.remove("hit"); el.classList.add("idle"); }, 460); }
+function foeBubble(parts, k) {
+  els.mBubble.innerHTML = parts.slice(0, k).join("") + `<span class="todo">${"•".repeat(parts.length - k)}</span>`;
+  els.mBubble.classList.add("show");
+}
+function bubble(el, text) { el.textContent = text; el.classList.add("show"); }
+function hideBubble(el) { el.classList.remove("show"); }
+
+// ---------- janelas ----------
+function showOverlay(title, text, buttons) {
+  els.ovTitle.textContent = title; els.ovText.innerHTML = text; els.ovRow.innerHTML = "";
+  for (const b of buttons) {
+    const btn = document.createElement("button");
+    btn.className = "btn " + (b.cls || ""); btn.textContent = b.label;
+    btn.addEventListener("click", () => { if (b.keep) { b.action(btn); return; } hideOverlay(); b.action(); });
+    els.ovRow.appendChild(btn);
+  }
+  els.overlay.hidden = false;
+  els.ovRow.querySelector("button")?.focus();
+}
+function hideOverlay() { els.overlay.hidden = true; }
+function pause() {
+  if (!S || S.over || S.paused) return;
+  S.paused = true; S.activeMs += performance.now() - S.t0;
+  els.pauseBtn.textContent = "Continuar"; render();
+  showOverlay("Jogo pausado", `${cap(art(PHASES[S.phase]))} ${PHASES[S.phase].short} também está esperando.`, [
+    { label: "Continuar", cls: "cast", action: resume },
+    { label: calmLabel(), keep: true, action: btn => { toggleCalm(); btn.textContent = calmLabel(); } },
+    { label: "Sair da fase", action: showMenu }]);
+}
+function resume() { if (!S || S.over) return; S.paused = false; S.t0 = performance.now(); hideOverlay(); els.pauseBtn.textContent = "Pausar"; render(); }
+
+function fmtTime(ms) { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function finishPhase(won) {
+  if (!S.paused) S.activeMs += performance.now() - S.t0;
+  S.over = true; S.run = -1; S.sel = []; render(); hideBubble(els.mBubble);
+  const i = S.phase, P = PHASES[i];
+  if (won && progress[S.mode] < i + 1) { progress[S.mode] = Math.min(i + 1, PHASES.length); save("xama-progresso", progress); }
+  setTimeout(() => showReport(won), 500);
+}
+function wordChip(e, cls) {
+  const u = S.mode === "silabas" ? "síl." : "letras";
+  return `<span class="w ${cls || ""}"><b>${e.shown}</b><small>${e.n} ${u} · ${e.dmg} dano</small></span>`;
+}
+function showReport(won) {
+  const i = S.phase, P = PHASES[i], L = S.log;
+  const total = L.mine.reduce((s, e) => s + e.dmg, 0);
+  const longest = L.mine.reduce((b, e) => (!b || e.n > b.n) ? e : b, null);
+  els.repTitle.textContent = won ? `Vitória! ${P.name} derrotad${P.g}` : `O xamã caiu na fase ${i + 1}`;
+  els.repSub.textContent = `Fase ${i + 1} de ${PHASES.length} · modo ${S.mode === "silabas" ? "sílabas" : "letras"}${calm ? " · ritmo calmo" : ""}`;
+  els.repStats.innerHTML = [
+    ["Tempo", fmtTime(S.activeMs)],
+    ["Palavras certas", L.mine.length],
+    ["Maior palavra", longest ? longest.w.toUpperCase() : "–"],
+    ["Dano causado", total]
+  ].map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
+  els.repMine.innerHTML = L.mine.length ? L.mine.map(e => wordChip(e)).join("") : '<p class="empty-note">Nenhuma palavra nesta fase.</p>';
+  els.repFoeH.textContent = `Palavras ${de(P)} ${P.short}`;
+  els.repFoe.innerHTML = L.foe.length ? L.foe.map(e => wordChip(e, "foe")).join("") : `<p class="empty-note">${cap(art(P))} ${P.short} não chegou a formar palavras.</p>`;
+  els.repBadWrap.hidden = !L.bad.length;
+  els.repBad.innerHTML = L.bad.map(w => `<span class="w bad"><b>${w}</b></span>`).join("");
+  els.repRow.innerHTML = "";
+  const add = (label, cls, fn) => { const b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label; b.addEventListener("click", fn); els.repRow.appendChild(b); return b; };
+  if (won && i < PHASES.length - 1) add("Próxima fase", "cast", () => startPhase(i + 1));
+  add(won ? "Jogar de novo" : "Tentar de novo", won && i < PHASES.length - 1 ? "" : "cast", () => startPhase(i));
+  add("Escolher fase", "", showMenu);
+  const copyBtn = add("Copiar relatório", "", () => copyReport(won, copyBtn));
+  els.report.hidden = false;
+  els.repRow.querySelector("button").focus();
+}
+function copyReport(won, btn) {
+  const i = S.phase, P = PHASES[i], L = S.log;
+  const fmt = e => `${e.shown} (${e.n} ${S.mode === "silabas" ? "sílabas" : "letras"}, ${e.dmg} de dano)`;
+  const text = [
+    `Xamã das Palavras – Fase ${i + 1} (${P.name}) – modo ${S.mode === "silabas" ? "sílabas" : "letras"}`,
+    `Resultado: ${won ? "vitória" : "derrota"} · tempo ${fmtTime(S.activeMs)}`,
+    `Palavras certas (${L.mine.length}): ${L.mine.map(fmt).join(", ") || "nenhuma"}`,
+    `Palavras do monstro (${L.foe.length}): ${L.foe.map(fmt).join(", ") || "nenhuma"}`,
+    L.bad.length ? `Tentativas que não são palavras: ${L.bad.join(", ")}` : ""
+  ].filter(Boolean).join("\n");
+  const done = ok => { btn.textContent = ok ? "Copiado" : "Não deu para copiar"; setTimeout(() => btn.textContent = "Copiar relatório", 1800); };
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); return ok;
+  };
+  try { navigator.clipboard.writeText(text).then(() => done(true), () => done(fallback())); } catch (e) { done(fallback()); }
+}
+
+// ---------- eventos ----------
+els.tiles.addEventListener("click", e => { const b = e.target.closest(".tile"); if (b) pick(Number(b.dataset.id)); });
+els.slots.addEventListener("click", e => { const b = e.target.closest(".slot:not(.empty)"); if (b) unpickAt(Number(b.dataset.idx)); });
+els.btnCast.addEventListener("click", cast);
+els.btnBack.addEventListener("click", backspace);
+els.btnClear.addEventListener("click", clearSel);
+els.btnSwap.addEventListener("click", swapTiles);
+document.querySelectorAll(".mode-card").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+els.homeBtn.addEventListener("click", showTitle);
+els.brandBtn.addEventListener("click", showTitle);
+els.resetBtn.addEventListener("click", () => {
+  if (els.resetBtn.dataset.confirm) { progress[mode] = 0; save("xama-progresso", progress); delete els.resetBtn.dataset.confirm; els.resetBtn.textContent = "Recomeçar progresso deste modo"; showMenu(); }
+  else { els.resetBtn.dataset.confirm = "1"; els.resetBtn.textContent = "Clique de novo para confirmar"; setTimeout(() => { delete els.resetBtn.dataset.confirm; els.resetBtn.textContent = "Recomeçar progresso deste modo"; }, 3000); }
+});
+els.pauseBtn.addEventListener("click", () => { if (S && S.paused && !S.over && els.pauseBtn.textContent === "Continuar") resume(); else pause(); });
+els.menuBtn.addEventListener("click", showMenu);
+function syncCalm() { document.querySelectorAll(".calm-toggle").forEach(b => b.setAttribute("aria-pressed", String(calm))); }
+function toggleCalm() { calm = !calm; save("xama-calmo", calm); syncCalm(); updateSpeedLabel(); }
+const calmLabel = () => calm ? "Ritmo calmo: ligado" : "Ritmo calmo: desligado";
+document.querySelectorAll(".calm-toggle").forEach(b => b.addEventListener("click", toggleCalm));
+document.addEventListener("visibilitychange", () => { if (document.hidden && S && !S.paused && !S.over) pause(); });
+document.addEventListener("keydown", e => {
+  if (!S || els.game.hidden || !els.overlay.hidden || !els.report.hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Enter") { e.preventDefault(); cast(); return; }
+  if (e.key === "Backspace") { e.preventDefault(); backspace(); return; }
+  if (e.key === "Escape") { clearSel(); return; }
+  if (S.mode !== "letras" || e.key.length !== 1) return;
+  const ch = e.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!/^[a-z]$/.test(ch)) return;
+  const t = S.tiles.find(x => x.ch === ch && !S.sel.includes(x.id));
+  if (t) pick(t.id);
+});
+
+// ---------- início ----------
+function boot() {
+  els.shamanArt.innerHTML = shamanSVG("g");
+  els.heroShaman.innerHTML = shamanSVG("t");
+  els.heroFoe.innerHTML = MONSTERS.dragao;
+  buildLogo(); syncCalm();
+  showTitle();
+  // no menu, o xamã ataca o dragão de vez em quando (e ao tocar nele)
+  let heroBusy = false;
+  const heroCast = () => {
+    if (heroBusy || els.title.hidden) return;
+    heroBusy = true;
+    shamanAttack(els.heroShaman).then(() => {
+      const spark = els.title.querySelector(".hero .spark");
+      if (!reduce && spark.animate) spark.animate([{ transform: "scale(1)" }, { transform: "scale(1.9)", opacity: 1 }, { transform: "scale(1)" }], { duration: 380 });
+      setTimeout(() => { hitAnim(els.heroFoe); heroBusy = false; }, 200);
+    });
+  };
+  els.heroShaman.addEventListener("click", heroCast);
+  setInterval(() => { if (!document.hidden) heroCast(); }, 4500);
+}
+boot();
+</script>
+</body>
+</html>
