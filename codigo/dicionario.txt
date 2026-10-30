@@ -3,7 +3,7 @@
 # Derivado da lista pt_br_50k do projeto FrequencyWords, de Hermit Dave
 # (https://github.com/hermitdave/FrequencyWords), baseada no OpenSubtitles.
 # Licença do conteúdo: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
-# Alterações: filtragem de palavras estrangeiras, nomes próprios e palavrões; remoção de acentos.
+# Alterações: filtragem de palavras estrangeiras, nomes próprios, palavrões, insultos e termos sexuais; remoção de acentos.
 aa
 aba
 abacate
@@ -1023,9 +1023,6 @@ alegres
 alegria
 alegrias
 alegro
-aleijada
-aleijado
-aleijados
 alejandro
 aleluia
 alem
@@ -2887,8 +2884,6 @@ azulejo
 azulejos
 ba
 baba
-babaca
-babacas
 babando
 babaquice
 babar
@@ -3372,9 +3367,7 @@ biblioteca
 bibliotecas
 bicarbonato
 biceps
-bicha
 bichano
-bichas
 bichinha
 bichinho
 bichinhos
@@ -3600,8 +3593,6 @@ boogie
 boomer
 boone
 boots
-boquete
-boquetes
 boquinha
 bora
 borboleta
@@ -3825,9 +3816,6 @@ bulls
 bulma
 bum
 bumbum
-bundao
-bundinha
-bundoes
 bunga
 buque
 buraco
@@ -3972,15 +3960,6 @@ cafeteria
 cafetoes
 cafezinho
 cafona
-caga
-cagada
-cagando
-cagao
-cagar
-cage
-cagou
-cague
-caguei
 cahill
 cai
 caia
@@ -5062,10 +5041,7 @@ chucrute
 chul
 chumbo
 chupa
-chupada
-chupador
 chupando
-chupao
 chupar
 chupe
 chupeta
@@ -5430,7 +5406,6 @@ colheitas
 colhendo
 colher
 colheres
-colhoes
 colica
 colicas
 colidir
@@ -6835,9 +6810,6 @@ crescido
 crescidos
 crescimento
 creta
-cretina
-cretino
-cretinos
 cria
 criacao
 criacoes
@@ -6881,7 +6853,6 @@ criminoso
 criminosos
 crio
 criou
-crioulo
 cripta
 criptografia
 criquete
@@ -7009,7 +6980,6 @@ cujas
 cujo
 cujos
 culatra
-culhoes
 culinaria
 culpa
 culpada
@@ -7137,7 +7107,6 @@ cutler
 cutter
 cutucando
 cutucar
-cuzoes
 czar
 da
 dada
@@ -7259,7 +7228,6 @@ debatendo
 debater
 debates
 debbie
-debil
 debito
 debitos
 debra
@@ -10123,7 +10091,6 @@ escritura
 escrituras
 escrivaninha
 escrivao
-escroto
 escrupulos
 escudeiro
 escudo
@@ -10698,16 +10665,6 @@ estupidas
 estupidez
 estupido
 estupidos
-estuprada
-estupradas
-estuprado
-estuprador
-estupradores
-estuprando
-estupraram
-estuprei
-estupros
-estuprou
 esvaziar
 esvazie
 esvaziem
@@ -11800,12 +11757,6 @@ focar
 focas
 focinho
 foco
-fodao
-fode
-fodem
-fodendo
-fodeu
-fodi
 fofa
 fofas
 fofinha
@@ -12115,8 +12066,6 @@ fruto
 frutos
 fu
 fucando
-fudendo
-fudeu
 fuentes
 fuga
 fugas
@@ -12735,15 +12684,12 @@ governantes
 governar
 governo
 governos
-goza
 gozacao
 gozado
 gozando
-gozar
 goze
 gozei
 gozo
-gozou
 gra
 graal
 graca
@@ -13417,8 +13363,6 @@ identifiquei
 ideologia
 idioma
 idiomas
-idiota
-idiotas
 idiotice
 idiotices
 ido
@@ -13516,8 +13460,6 @@ imas
 imatura
 imaturo
 imbativel
-imbecil
-imbecis
 imediata
 imediato
 imensa
@@ -16148,8 +16090,6 @@ maria
 mariana
 marianne
 mariano
-marica
-maricas
 marido
 maridos
 marie
@@ -16254,10 +16194,6 @@ mastigando
 mastigar
 mastigue
 mastro
-masturba
-masturbacao
-masturbando
-masturbar
 mata
 matado
 matador
@@ -16558,7 +16494,6 @@ mercenarios
 mercer
 merci
 mercurio
-merdinha
 mereca
 merece
 merecedor
@@ -16703,14 +16638,6 @@ migalha
 migalhas
 migracao
 miguel
-mija
-mijada
-mijando
-mijar
-mije
-mijei
-mijo
-mijou
 mil
 mila
 milagre
@@ -16966,7 +16893,6 @@ monetario
 monge
 monges
 mongois
-mongol
 mongolia
 monica
 monique
@@ -17496,7 +17422,6 @@ negada
 negado
 negam
 negando
-negao
 negar
 negaram
 negaria
@@ -18203,8 +18128,6 @@ organizei
 organizou
 orgao
 orgaos
-orgasmo
-orgasmos
 orgia
 orgias
 orgulha
@@ -18256,8 +18179,6 @@ osso
 ossos
 ostra
 ostras
-otario
-otarios
 otica
 otima
 otimas
@@ -18915,10 +18836,6 @@ pegue
 peguei
 peguem
 peguemos
-peidar
-peido
-peidos
-peidou
 peitinhos
 peito
 peitoes
@@ -19764,15 +19681,11 @@ porem
 porfavor
 poria
 pormenores
-pornografia
-pornografico
-pornos
 poroes
 poros
 porque
 porquinho
 porquinhos
-porrada
 porre
 porreiro
 porsche
@@ -20517,7 +20430,6 @@ prossiga
 prossigam
 prostata
 prostituicao
-prostituto
 protagonista
 protecao
 proteccao
@@ -20713,7 +20625,6 @@ pune
 punha
 punhado
 punhal
-punheteiro
 punho
 punhos
 punicao
@@ -20747,7 +20658,6 @@ puser
 puseram
 pusesse
 puteiro
-putinha
 putnam
 putz
 puxa
@@ -21065,8 +20975,6 @@ rani
 ranzinza
 rao
 raoul
-rapariga
-raparigas
 rapaz
 rapazes
 rapaziada
@@ -21952,9 +21860,6 @@ reta
 retaguarda
 retaliacao
 retaliar
-retardada
-retardado
-retardados
 retardar
 retas
 retencao
@@ -22472,11 +22377,6 @@ sabre
 sabrina
 saca
 sacada
-sacana
-sacanagem
-sacanas
-sacaneando
-sacanear
 sacar
 sacerdocio
 sacerdote
@@ -22512,8 +22412,6 @@ saddam
 sadico
 sadie
 saem
-safadinha
-safados
 safar
 safari
 safira
@@ -22695,7 +22593,6 @@ santuario
 sao
 saori
 saos
-sapatao
 sapateado
 sapateiro
 sapatilhas
@@ -24136,8 +24033,6 @@ tapinha
 tapioca
 taquicardia
 tara
-tarado
-tarados
 tardar
 tarde
 tardes
@@ -24927,13 +24822,6 @@ tranquilos
 trans
 transacao
 transacoes
-transado
-transam
-transamos
-transando
-transaram
-transaria
-transava
 transcricao
 transcricoes
 transe
@@ -24976,7 +24864,6 @@ transmitindo
 transmitir
 transmitiu
 transo
-transou
 transparente
 transplante
 transplantes
@@ -25472,13 +25359,9 @@ vacina
 vacinas
 vacuo
 vader
-vadiazinha
 vadio
 vadios
 vaga
-vagabundas
-vagabundo
-vagabundos
 vagamente
 vagando
 vagao
@@ -25848,7 +25731,6 @@ vez
 vezes
 vi
 via
-viadinho
 viaduto
 viagem
 viagens

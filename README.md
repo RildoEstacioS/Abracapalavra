@@ -17,7 +17,9 @@ O xamã enfrenta um monstro por fase. Os dois formam palavras ao mesmo tempo, ca
 
 - **10 fases** por modo (letras, sílabas e figuras), cada uma com um monstro animado e um cenário. Uma fase só abre depois de vencer a anterior. O progresso fica salvo no computador.
 - **50 figuras** de palavras simples (casa, uva, violão, cachorro, borboleta...). Elas não se repetem até passarem todas.
-- **Relatório** no fim de cada fase ou rodada: tempo, palavras certas, dicas usadas, figuras puladas, tentativas erradas e as palavras do monstro. O botão "Copiar relatório" copia tudo como texto.
+- **Ajuda automática** em todos os modos. Depois de 6 segundos sem acertar a próxima peça, ela brilha e pula, como no botão Dica. Se o aluno continuar sem avançar por mais 8 segundos, a palavra aparece apagada nas casas, a partir do que ele já montou, e as peças dela brilham e pulam na ordem certa. Dá para desligar na tela de pausa.
+- **Grafia certa no fim da palavra.** As peças não têm acento. Quando a palavra fica pronta, as casas mostram a escrita certa (MAÇÃ, AVIÃO), com as letras de acento em destaque.
+- **Relatório** no fim de cada fase ou rodada: tempo, palavras certas, dicas usadas (pedidas e automáticas), palavras que o jogo precisou mostrar, figuras puladas, tentativas erradas e as palavras do monstro. O botão "Copiar relatório" copia tudo como texto.
 - **Ritmo calmo** deixa o monstro bem mais lento (no menu ou na tela de pausa).
 - Funciona **sem internet**, no computador, no tablet e no celular, sempre sem rolar a tela.
 
@@ -75,8 +77,11 @@ O botão **Ouvir** (modos figuras e treino) usa a voz em português do próprio 
 As listas de palavras ficam em arquivos de texto simples, uma palavra por linha (linhas com `#` são comentários):
 
 - `codigo/dicionario.txt`: palavras que o jogo aceita nos modos letras e sílabas. Acentos são ignorados, porque as peças não têm acento (maçã vale como MACA).
-- `codigo/palavras-monstro.txt`: palavras que os monstros formam. Vale usar palavras simples e conhecidas da turma.
-- `codigo/silabas.txt`: palavras do modo sílabas, com as sílabas separadas por hífen (`ca-sa`, `ba-na-na`).
+- `codigo/palavras-monstro.txt`: palavras que os monstros formam. Vale usar palavras simples e conhecidas da turma. Pode escrever com acento (`pão`, `jacaré`).
+- `codigo/silabas.txt`: palavras do modo sílabas, com as sílabas separadas por hífen (`ca-sa`, `ba-na-na`, `ca-fé`).
+- `codigo/acentos.txt`: a grafia certa das palavras com acento ou cedilha, que o jogo mostra no fim (CAFE vira CAFÉ). Tem cerca de 1.900 palavras: as mais comuns, escritas à mão, e as terminadas em -ção, -ão, -ões, -ência, -ável, -ível, -ário e -ório. Uma palavra que não está na lista aparece sem acento. Linhas com `!` marcam palavras que também existem sem acento (`!esta`, por causa de está). Nelas, o modo letras mostra a palavra como o aluno montou.
+
+Os tempos da ajuda automática ficam no começo do script de `codigo/jogo.html`: `AJUDA_1 = 6000` (1ª ajuda, em milissegundos) e `AJUDA_2 = 8000` (2ª ajuda).
 
 As figuras ficam na lista `FIGURAS` dentro de `codigo/jogo.html`. Cada uma tem a palavra sem acento (`w`), o jeito certo de escrever (`label`) e o desenho em SVG (`svg`, 100 x 100). As fases (nome do monstro, vida, velocidade e tamanho das palavras) ficam na lista `PHASES`, no mesmo arquivo.
 
@@ -100,6 +105,7 @@ codigo/
   dicionario.txt            palavras aceitas
   palavras-monstro.txt      palavras dos monstros
   silabas.txt               palavras do modo sílabas
+  acentos.txt               grafia certa das palavras com acento
   construir.py              junta tudo no index.html
   fontes/                   fontes usadas no jogo e suas licenças
   lancador/                 código do executável (Go), ícones e script de build
@@ -108,5 +114,5 @@ codigo/
 ## Créditos e licenças
 
 - **Fontes:** Andika (SIL International) e Rowdies (The Rowdies Project Authors), sob a SIL Open Font License 1.1; Luckiest Guy (Astigmatic), sob a Apache License 2.0. Os textos das licenças estão em `codigo/fontes/`.
-- **Dicionário:** derivado da lista `pt_br_50k` do projeto [FrequencyWords](https://github.com/hermitdave/FrequencyWords), de Hermit Dave, baseada no OpenSubtitles, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). A lista foi filtrada (sem palavras estrangeiras, nomes próprios e palavrões) e teve os acentos removidos. Por isso, o `codigo/dicionario.txt` segue a mesma licença.
+- **Dicionário:** derivado da lista `pt_br_50k` do projeto [FrequencyWords](https://github.com/hermitdave/FrequencyWords), de Hermit Dave, baseada no OpenSubtitles, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). A lista foi filtrada (sem palavras estrangeiras, nomes próprios, palavrões, insultos e termos sexuais) e teve os acentos removidos. Por isso, o `codigo/dicionario.txt` segue a mesma licença.
 - Personagens, monstros, figuras, cenários e código: criados para este projeto.

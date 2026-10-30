@@ -56,6 +56,27 @@ def ler_silabas(nome):
     return saida
 
 
+def ler_acentos():
+    """Grafia certa das palavras com acento (as peças não têm acento).
+
+    Junta acentos.txt com as palavras escritas com acento nas listas do monstro e do modo sílabas.
+    Linhas de acentos.txt que começam com ! são palavras que também existem sem acento (esta/está).
+    """
+    grafias, ambiguas = [], []
+    for nome in ("acentos.txt", "palavras-monstro.txt", "silabas.txt"):
+        for linha in (AQUI / nome).read_text(encoding="utf-8").splitlines():
+            p = linha.strip().lower()
+            if not p or p.startswith("#"):
+                continue
+            if p.startswith("!"):
+                ambiguas.append(sem_acento(p[1:]))
+                continue
+            p = p.replace("-", "")
+            if sem_acento(p) != p and re.fullmatch(r"[a-zà-ÿ]+", p):
+                grafias.append(p)
+    return list(dict.fromkeys(grafias)), list(dict.fromkeys(ambiguas))
+
+
 def css_fontes():
     faixa = (AQUI / "fontes" / "unicode-range.txt").read_text(encoding="utf-8").strip()
     regras = []
@@ -73,12 +94,15 @@ def main():
     dicionario = ler_palavras("dicionario.txt")
     monstro = ler_palavras("palavras-monstro.txt")
     silabas = ler_silabas("silabas.txt")
+    acentos, ambiguas = ler_acentos()
     icone = base64.b64encode((AQUI / "lancador" / "icone" / "icone.svg").read_bytes()).decode("ascii")
 
     html = (
         modelo.replace("__WORDS__", " ".join(dicionario))
         .replace("__MONSTER__", " ".join(monstro))
         .replace("__SILABAS__", " ".join(silabas))
+        .replace("__ACENTOS__", " ".join(acentos))
+        .replace("__AMBIGUAS__", " ".join(ambiguas))
         .replace("/*__FONTES__*/", css_fontes())
         .replace("__ICONE__", icone)
     )
@@ -86,7 +110,8 @@ def main():
         destino.parent.mkdir(parents=True, exist_ok=True)
         destino.write_text(html, encoding="utf-8", newline="\n")
         print(f"gravado {destino.relative_to(RAIZ)} ({len(html) // 1024} KB)")
-    print(f"{len(dicionario)} palavras no dicionário, {len(monstro)} do monstro, {len(silabas)} no modo sílabas")
+    print(f"{len(dicionario)} palavras no dicionário, {len(monstro)} do monstro, {len(silabas)} no modo sílabas, "
+          f"{len(acentos)} com acento")
 
 
 if __name__ == "__main__":

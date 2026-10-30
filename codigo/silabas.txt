@@ -1,5 +1,6 @@
 # Modo sílabas: uma palavra por linha, com as sílabas separadas por hífen (ca-sa, ba-na-na).
 # O monstro também usa estas palavras.
+# Pode escrever com acento (ca-fé, ja-ca-ré): as peças não têm acento, e o jogo mostra a grafia certa.
 ca-sa
 bo-la
 ga-to
@@ -41,7 +42,7 @@ ve-la
 vi-da
 bo-ca
 bo-ta
-ca-fe
+ca-fé
 co-co
 cu-bo
 fa-da
@@ -91,7 +92,7 @@ ca-be-lo
 ca-ne-la
 ce-bo-la
 ga-ve-ta
-ja-ca-re
+ja-ca-ré
 mo-chi-la
 pe-pi-no
 pi-ra-ta
@@ -104,10 +105,10 @@ ba-ta-ta
 pi-ja-ma
 bo-li-nha
 ca-ri-nho
-pa-co-ca
+pa-ço-ca
 ca-mi-nho
 fo-gue-te
-sa-bi-a
+sa-bi-á
 pi-a-no
 ja-bu-ti
 ca-pi-va-ra

@@ -309,6 +309,14 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .fig-side .btn { flex: 1 1 0; min-height: 0; max-height: 72px; }
 .tile.hint { animation: hintp .8s ease-in-out 2; box-shadow: 0 4px 0 var(--parchment-edge), 0 0 0 4px var(--magic), 0 0 22px var(--magic); }
 @keyframes hintp { 50% { transform: translateY(-7px); } }
+/* 2ª ajuda: peças da palavra acesas (pulam na ordem pelo script) e a palavra apagada nas casas */
+.tile.seq { position: relative; box-shadow: 0 4px 0 var(--parchment-edge), 0 0 0 3px var(--magic), 0 0 16px var(--magic); }
+.tile.seq[data-n]::after { content: attr(data-n); position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--magic); color: #052a25; font-size: 12px; line-height: 20px; }
+.slot.ghost { color: rgba(242, 226, 191, .42); background: rgba(242, 226, 191, .05); box-shadow: inset 0 0 0 2px rgba(242, 226, 191, .22); }
+.slot.wrong { box-shadow: 0 3px 0 var(--parchment-edge), 0 0 0 3px var(--foe); }
+/* fim da palavra: a grafia certa, com as letras de acento em destaque */
+.slot.solved { cursor: default; background: linear-gradient(#c9fff6, var(--magic)); color: #052a25; box-shadow: 0 3px 0 var(--magic-deep); }
+.slot.solved.acc { background: linear-gradient(#fff1c2, var(--gold)); color: var(--ink); box-shadow: 0 3px 0 #a06d0c, 0 0 14px var(--gold); }
 .app.figuras .me .tiles { --s: min(74px, (100cqw - 3 * var(--g)) / 4, (100cqh - 2 * var(--g) - 4px) / 3); width: calc(var(--s) * 4 + 3 * var(--g)); grid-template-columns: repeat(4, 1fr); }
 .app.figuras .me .slot { flex-basis: 50px; height: 46px; font-size: 26px; }
 .mini i.pic { padding: 2px; background: #fdf6e6; }
@@ -624,6 +632,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
     <div class="stats" id="repStats"></div>
     <div class="wlist"><h3>Suas palavras</h3><div class="words" id="repMine"></div></div>
     <div class="wlist" id="repFoeWrap"><h3 id="repFoeH">Palavras do monstro</h3><div class="words" id="repFoe"></div></div>
+    <div class="wlist" id="repShowWrap"><h3>O jogo mostrou a palavra</h3><div class="words" id="repShow"></div></div>
     <div class="wlist" id="repSkipWrap"><h3>Figuras puladas</h3><div class="words" id="repSkip"></div></div>
     <div class="wlist" id="repBadWrap"><h3 id="repBadH">Tentativas que não são palavras</h3><div class="words" id="repBad"></div></div>
     <div class="row" id="repRow"></div>
@@ -635,6 +644,9 @@ const WORDS_STR = "__WORDS__";
 const MONSTER_WORDS = "__MONSTER__".split(" ");
 const DICT = new Set(WORDS_STR.split(" "));
 MONSTER_WORDS.forEach(w => DICT.add(w));
+// Grafia certa das palavras com acento (as peças não têm acento): "cafe" -> "café"
+const ACENTOS_STR = "__ACENTOS__";
+const AMBIGUAS_STR = "__AMBIGUAS__"; // existem também sem acento (esta/está): no modo letras fica como o aluno montou
 
 // Palavras com sílabas separadas (modo sílabas). O monstro usa só estas.
 const SYL_WORDS = "__SILABAS__".split(/\s+/).map(w => w.split("-"));
@@ -977,6 +989,17 @@ const MODE_NAME = { letras: "letras", silabas: "sílabas", figuras: "figuras", t
 const TREINO_N = 10; // figuras por rodada no modo treino
 const isFig = md => md === "figuras" || md === "treino";
 const PLAYER_HP = 40;
+
+// Ajuda automática (todos os modos). Tempos em milissegundos, contados só com o jogo rodando
+// (pausa, animações e janelas não contam).
+const AJUDA_1 = 6000; // sem acertar a próxima peça: ela brilha e pula, como no botão Dica
+const AJUDA_2 = 8000; // depois da 1ª ajuda, ainda sem avançar: a palavra aparece apagada e as peças pulam na ordem
+
+const semAcento = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+const GRAFIA = new Map(ACENTOS_STR.split(" ").filter(Boolean).map(g => [semAcento(g), g]));
+const AMBIGUAS = new Set(AMBIGUAS_STR.split(" ").filter(Boolean));
+// grafia certa para mostrar: quem = "eu" (palavra livre do aluno) ou "monstro" (palavra das listas do jogo)
+function grafia(w, quem) { const g = GRAFIA.get(w); return !g || (quem === "eu" && AMBIGUAS.has(w)) ? w : g; }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const art = P => P.g === "a" ? "a" : "o";
 const um = P => P.g === "a" ? "Uma" : "Um";
@@ -1013,7 +1036,7 @@ const els = {
   overlay: $("overlay"), ovTitle: $("ovTitle"), ovText: $("ovText"), ovRow: $("ovRow"),
   btnCast: $("btnCast"), btnBack: $("btnBack"), btnClear: $("btnClear"), btnSwap: $("btnSwap"),
   report: $("report"), repTitle: $("repTitle"), repSub: $("repSub"), repStats: $("repStats"), repMine: $("repMine"), repFoe: $("repFoe"), repFoeH: $("repFoeH"),
-  repBad: $("repBad"), repBadWrap: $("repBadWrap"), repBadH: $("repBadH"), repSkip: $("repSkip"), repSkipWrap: $("repSkipWrap"), repRow: $("repRow"),
+  repBad: $("repBad"), repBadWrap: $("repBadWrap"), repBadH: $("repBadH"), repSkip: $("repSkip"), repSkipWrap: $("repSkipWrap"), repShow: $("repShow"), repShowWrap: $("repShowWrap"), repRow: $("repRow"),
   fig: $("fig"), figPic: $("figPic"), btnHear: $("btnHear"), btnHint: $("btnHint"),
   pName: $("pName"), shelf: $("shelf"), repFoeWrap: $("repFoeWrap")
 };
@@ -1025,6 +1048,7 @@ let runSeq = 0;
 // Nome do jogo: cada item é uma linha do logo (a 1ª em letras douradas, a 2ª em pecinhas)
 const GAME_NAME = ["Abraca", "palavra"];
 let calm = load("xama-calmo", false) === true;
+let autoHelp = load("xama-ajuda", true) !== false;
 let mode = ["silabas", "figuras"].includes(load("xama-modo", "letras")) ? load("xama-modo", "letras") : "letras";
 let progress = (() => { // maior índice de fase liberado, por modo
   const p = load("xama-progresso", {}), ok = v => Number.isInteger(v) && v >= 0 ? Math.min(v, 10) : 0;
@@ -1088,23 +1112,163 @@ function nextFigure() {
     if (S.fig && FIGURAS[figDeck[figDeck.length - 1]] === S.fig) figDeck.reverse();
   }
   S.fig = FIGURAS[figDeck.pop()];
-  S.tiles = figBoard(S.fig.w); S.sel = []; S.hintId = null;
+  S.tiles = figBoard(S.fig.w); S.sel = []; S.hintId = null; resetHelp();
   els.figPic.innerHTML = S.fig.svg;
   els.figPic.classList.remove("fresh"); void els.figPic.offsetWidth; els.figPic.classList.add("fresh");
 }
-function hint() {
-  if (!canAct() || !isFig(S.mode)) return;
-  const alvo = S.fig.w; let k = 0;
-  while (k < S.sel.length && S.tiles.find(t => t.id === S.sel[k]).ch === alvo[k]) k++;
-  S.sel = S.sel.slice(0, k);
-  if (k < alvo.length) {
-    const t = S.tiles.find(x => x.ch === alvo[k] && !S.sel.includes(x.id));
-    S.log.hints++; S.hintId = t ? t.id : null;
+
+// ---------- ajuda (botão Dica e ajuda automática) ----------
+// nível 1: a próxima peça brilha e pula · nível 2: a palavra aparece apagada nas casas e as peças pulam na ordem
+function newHelp() { return { level: 0, idle: 0, target: null, logged: false, seqI: 0, seqAt: 0, noPlan: false }; }
+function resetHelp() { if (S) S.help = newHelp(); }
+const selTokens = () => S.sel.map(id => S.tiles.find(t => t.id === id).ch);
+const isPrefix = (toks, alvo) => toks.length <= alvo.length && toks.every((t, i) => t === alvo[i]);
+const validWord = w => DICT.has(w) || SYL_SET.has(w);
+let MONSTER_TOKENS = null, DICT_TOKENS = null;
+// peças (ainda livres) para completar `alvo` mantendo as `k` primeiras escolhidas
+function planFor(alvo, k) {
+  const used = new Set(S.sel.slice(0, k)), ids = [];
+  for (let j = k; j < alvo.length; j++) {
+    const t = S.tiles.find(x => x.ch === alvo[j] && !used.has(x.id));
+    if (!t) return null;
+    used.add(t.id); ids.push(t.id);
+  }
+  return { target: alvo, keep: k, ids };
+}
+// modos livres: uma palavra conhecida que dá para montar com as peças e que começa como o aluno começou
+function helpWord(pre) {
+  const counts = {};
+  for (const t of S.tiles) counts[t.ch] = (counts[t.ch] || 0) + 1;
+  const fits = p => {
+    if (p.length <= pre.length || !pre.every((x, i) => p[i] === x)) return false;
+    const c = {};
+    for (const x of p) { c[x] = (c[x] || 0) + 1; if (c[x] > (counts[x] || 0)) return false; }
+    return true;
+  };
+  let pools;
+  if (S.mode === "silabas") pools = [SYL_WORDS];
+  else {
+    if (!MONSTER_TOKENS) {
+      MONSTER_TOKENS = MONSTER_WORDS.concat([...SYL_SET]).filter(w => w.length >= 3 && w.length <= 8 && validWord(w)).map(w => w.split(""));
+      DICT_TOKENS = [...DICT].filter(w => w.length >= 3 && w.length <= 6 && !AMBIGUAS.has(w)).map(w => w.split(""));
+    }
+    pools = [MONSTER_TOKENS, DICT_TOKENS];
+  }
+  for (const pool of pools) {
+    const ok = pool.filter(fits);
+    if (!ok.length) continue;
+    const len = p => S.mode === "silabas" ? p.length * 2 : p.length;
+    ok.sort((a, b) => Math.abs(len(a) - 5) - Math.abs(len(b) - 5));
+    return rnd(ok.slice(0, 6));
+  }
+  return null;
+}
+function helpPlan() {
+  const toks = selTokens();
+  if (isFig(S.mode)) {
+    const alvo = S.fig.w.split(""); let k = 0;
+    while (k < toks.length && toks[k] === alvo[k]) k++;
+    return planFor(alvo, k);
+  }
+  const H = S.help;
+  if (H.target && isPrefix(toks, H.target)) { const p = planFor(H.target, toks.length); if (p && p.ids.length) return p; }
+  for (let k = toks.length; k >= 0; k--) {
+    const alvo = helpWord(toks.slice(0, k));
+    if (alvo) { const p = planFor(alvo, k); if (p) return p; }
+  }
+  return null;
+}
+function helpShown(alvo) {
+  if (isFig(S.mode)) return S.fig.label;
+  const g = grafia(alvo.join(""), "eu");
+  return S.mode === "silabas" ? splitLike(g, alvo).join("-") : g;
+}
+// nível 1 (botão Dica ou ajuda automática)
+function giveHint(auto) {
+  if (!canAct() || S.casting || S.solvedLock) return;
+  const H = S.help, plan = helpPlan();
+  H.idle = 0; H.level = Math.max(H.level, 1);
+  if (!plan) {
+    if (auto && !H.noPlan && !isFig(S.mode)) setMsg(`Está difícil? Toque em Trocar para ganhar ${S.mode === "silabas" ? "sílabas" : "letras"} novas.`);
+    H.noPlan = true; render(); return;
+  }
+  S.sel = S.sel.slice(0, plan.keep); H.target = plan.target;
+  if (plan.ids.length) {
+    if (auto) S.log.auto1++; else S.log.hints++;
+    S.hintId = plan.ids[0];
     clearTimeout(S.hintTimer);
     S.hintTimer = setTimeout(() => { if (S && !S.over) { S.hintId = null; render(); } }, 1700);
   }
   render();
 }
+// nível 2: mostra a palavra
+function showModel() {
+  const H = S.help, plan = helpPlan();
+  H.idle = 0; H.level = 2;
+  if (!plan) { render(); return; }
+  S.sel = S.sel.slice(0, plan.keep); H.target = plan.target; S.hintId = null;
+  H.seqI = 0; H.seqAt = performance.now() + 300;
+  if (!H.logged) { H.logged = true; S.log.auto2++; S.log.shown.push(helpShown(plan.target)); }
+  setMsg("Veja a palavra apagada e siga as peças que pulam, na ordem.");
+  if (isFig(S.mode)) speak(S.fig.label);
+  render();
+}
+// o que o aluno fez conta como avanço?
+function noteAction(kind) {
+  const H = S.help; if (!H) return;
+  const toks = selTokens();
+  if (isFig(S.mode)) { if (kind === "pick" && isPrefix(toks, S.fig.w.split(""))) H.idle = 0; }
+  else { H.idle = 0; if (H.target && !isPrefix(toks, H.target)) { H.target = null; H.level = 0; } }
+  H.seqI = 0; H.seqAt = performance.now() + 250;
+}
+// peças que faltam, na ordem, quando a palavra está à mostra
+function seqIds() {
+  const H = S.help;
+  if (!H || H.level < 2 || !H.target || S.solved) return null;
+  const toks = selTokens();
+  if (!isPrefix(toks, H.target)) return null;
+  const p = planFor(H.target, toks.length);
+  return p ? p.ids : null;
+}
+function seqStep() {
+  const H = S.help, now = performance.now();
+  if (now < H.seqAt) return;
+  const ids = seqIds();
+  if (!ids || !ids.length) return;
+  if (H.seqI >= ids.length) { H.seqI = 0; H.seqAt = now + 1300; return; }
+  const el = els.tiles.querySelector(`[data-id="${ids[H.seqI]}"]`);
+  if (el && !reduce && el.animate) el.animate([{ transform: "none" }, { transform: "translateY(-11px) scale(1.08)" }, { transform: "none" }], { duration: 360, easing: "ease-out" });
+  H.seqI++; H.seqAt = now + 420;
+}
+function helpTick() {
+  if (!S || !S.help || !canAct() || S.casting || S.solvedLock || document.hidden || !els.overlay.hidden || !els.report.hidden) return;
+  const H = S.help;
+  if (autoHelp) {
+    H.idle += 100;
+    if (H.level === 0 && H.idle >= AJUDA_1) giveHint(true);
+    else if (H.level === 1 && H.idle >= AJUDA_2) showModel();
+    else if (H.level >= 2 && H.idle >= AJUDA_2) showModel(); // de novo: tira peças erradas e repete a sequência
+  }
+  if (H.level >= 2) seqStep();
+}
+// divide uma palavra nas mesmas partes que as peças (as peças não têm acento, então o tamanho bate)
+function splitLike(word, parts) {
+  const out = []; let i = 0;
+  for (const p of parts) { out.push(word.slice(i, i + p.length)); i += p.length; }
+  return out;
+}
+// mostra a grafia certa nas casas; devolve as letras com acento (Ç, Ã...)
+function showSolved(shown, toks) {
+  const s = shown.replace(/-/g, "");
+  if (semAcento(s) !== toks.join("")) { S.solved = toks.map(t => ({ t, acc: false })); return []; }
+  const acc = [];
+  S.solved = splitLike(s, toks).map((seg, j) => {
+    for (const c of seg) if (semAcento(c) !== c) acc.push(c.toUpperCase());
+    return { t: seg, acc: seg !== toks[j] };
+  });
+  return [...new Set(acc)];
+}
+const accNote = acc => acc.length ? ` Repare no ${acc.join(" e no ")}.` : "";
 const voz = { pt: null };
 function loadVoices() {
   try {
@@ -1185,8 +1349,8 @@ function startPhase(i) {
     run: ++runSeq, mode, phase: i, php: PLAYER_HP, mhp: P.hp, mmax: P.hp,
     tiles: mode === "figuras" ? [] : makeBoard(mode, sz.me), sel: [],
     mtiles: makeBoard(foeMode(mode), sz.foe), msel: [], mtarget: 0,
-    paused: true, over: false, casting: false, fig: null, deck: null, hintId: null,
-    log: { mine: [], foe: [], bad: [], skipped: [], hints: 0 }, activeMs: 0, t0: 0
+    paused: true, over: false, casting: false, fig: null, deck: null, hintId: null, help: newHelp(), solved: null, solvedLock: false,
+    log: { mine: [], foe: [], bad: [], skipped: [], hints: 0, auto1: 0, auto2: 0, shown: [] }, activeMs: 0, t0: 0
   };
   els.fig.hidden = mode !== "figuras";
   if (mode === "figuras") nextFigure();
@@ -1221,8 +1385,8 @@ function startTreino() {
   S = {
     run: ++runSeq, mode: "treino", phase: -1, php: 0, mhp: 1, mmax: 1,
     tiles: [], sel: [], mtiles: [], msel: [], mtarget: 0,
-    paused: true, over: false, casting: false, fig: null, hintId: null, done: 0, acertos: 0, shelf: [],
-    log: { mine: [], foe: [], bad: [], skipped: [], hints: 0 }, activeMs: 0, t0: 0
+    paused: true, over: false, casting: false, fig: null, hintId: null, done: 0, acertos: 0, shelf: [], help: newHelp(), solved: null, solvedLock: false,
+    log: { mine: [], foe: [], bad: [], skipped: [], hints: 0, auto1: 0, auto2: 0, shown: [] }, activeMs: 0, t0: 0
   };
   showScreen("game");
   applyModeClass("treino");
@@ -1277,28 +1441,45 @@ function render() {
   }
   els.mHp.style.width = (100 * Math.max(0, S.mhp) / S.mmax) + "%";
   els.mHpTxt.textContent = `${Math.max(0, S.mhp)} / ${S.mmax}`;
-  const locked = S.paused || S.over;
+  const locked = S.paused || S.over || S.solvedLock;
   const selSet = new Set(S.sel);
+  const H = S.help || newHelp();
+  const ghost = H.level >= 2 && H.target && !S.solved ? H.target : null; // palavra à mostra (2ª ajuda)
+  const seq = new Map((seqIds() || []).map((id, k) => [id, k]));
   els.tiles.innerHTML = "";
   els.tiles.classList.toggle("locked", locked);
   for (const t of S.tiles) {
     const b = document.createElement("button");
-    b.className = "tile" + (selSet.has(t.id) ? " picked" : "") + (t.fresh ? " fresh" : "") + (t.id === S.hintId && !selSet.has(t.id) ? " hint" : "");
+    b.className = "tile" + (selSet.has(t.id) ? " picked" : "") + (t.fresh ? " fresh" : "") + (t.id === S.hintId && !selSet.has(t.id) ? " hint" : "") + (seq.has(t.id) ? " seq" : "");
     b.dataset.id = t.id; b.innerHTML = tileHTML(t.ch);
+    if (seq.has(t.id) && reduce) b.dataset.n = seq.get(t.id) + 1;
     b.setAttribute("aria-label", (S.mode === "silabas" ? "Sílaba " : "Letra ") + t.ch.toUpperCase());
     b.disabled = locked || selSet.has(t.id);
     els.tiles.appendChild(b); t.fresh = false;
   }
   els.slots.innerHTML = "";
   const min = S.mode === "silabas" ? 4 : 8;
-  const total = isFig(S.mode) ? S.fig.w.length : Math.min(12, Math.max(min, S.sel.length + 1));
-  for (let k = 0; k < total; k++) {
-    const id = S.sel[k], s = document.createElement("button");
-    if (id !== undefined) {
-      const t = S.tiles.find(x => x.id === id);
-      s.className = "slot"; s.innerHTML = tileHTML(t.ch); s.title = "Tirar esta peça"; s.dataset.idx = k; s.disabled = locked;
-    } else { s.className = "slot empty"; s.tabIndex = -1; s.disabled = true; s.setAttribute("aria-hidden", "true"); }
-    els.slots.appendChild(s);
+  if (S.solved) { // grafia certa no fim da palavra
+    for (const p of S.solved) {
+      const s = document.createElement("button");
+      s.className = "slot solved" + (p.acc ? " acc" : ""); s.textContent = p.t; s.disabled = true; s.tabIndex = -1;
+      els.slots.appendChild(s);
+    }
+    if (!isFig(S.mode)) for (let k = S.solved.length; k < min; k++) { const s = document.createElement("button"); s.className = "slot empty"; s.disabled = true; s.tabIndex = -1; els.slots.appendChild(s); }
+  } else {
+    const toks = selTokens();
+    const total = isFig(S.mode) ? S.fig.w.length : Math.min(12, Math.max(min, S.sel.length + 1, ghost ? ghost.length : 0));
+    for (let k = 0; k < total; k++) {
+      const id = S.sel[k], s = document.createElement("button");
+      if (id !== undefined) {
+        const t = S.tiles.find(x => x.id === id);
+        s.className = "slot" + (ghost && k < ghost.length && toks[k] !== ghost[k] ? " wrong" : ""); s.innerHTML = tileHTML(t.ch); s.title = "Tirar esta peça"; s.dataset.idx = k; s.disabled = locked;
+      } else {
+        s.className = "slot empty" + (ghost && k < ghost.length ? " ghost" : ""); s.tabIndex = -1; s.disabled = true; s.setAttribute("aria-hidden", "true");
+        if (ghost && k < ghost.length) s.textContent = ghost[k];
+      }
+      els.slots.appendChild(s);
+    }
   }
   els.power.textContent = "dano " + playerDmg(S.mode, units());
   els.btnCast.disabled = locked || S.sel.length < 1 || currentWord().length < 2;
@@ -1332,15 +1513,17 @@ function setMsg(text, kind) { els.msg.textContent = text; els.msg.className = "b
 // ---------- jogador ----------
 const canAct = () => S && !S.paused && !S.over;
 function pick(id) {
-  if (!canAct() || S.sel.includes(id)) return;
+  if (!canAct() || S.solvedLock || S.sel.includes(id)) return;
+  S.solved = null;
   if (isFig(S.mode) && S.sel.length >= S.fig.w.length) return;
-  S.sel.push(id); render();
+  S.sel.push(id); noteAction("pick"); render();
 }
-function unpickAt(idx) { if (!canAct()) return; S.sel.splice(idx); render(); }
-function backspace() { if (!canAct() || !S.sel.length) return; S.sel.pop(); render(); }
-function clearSel() { if (!canAct()) return; S.sel = []; render(); }
+function unpickAt(idx) { if (!canAct() || S.solvedLock) return; S.sel.splice(idx); noteAction("remove"); render(); }
+function backspace() { if (!canAct() || S.solvedLock || !S.sel.length) return; S.sel.pop(); noteAction("remove"); render(); }
+function clearSel() { if (!canAct() || S.solvedLock) return; S.sel = []; S.solved = null; noteAction("remove"); render(); }
 function swapTiles() {
-  if (!canAct()) return;
+  if (!canAct() || S.solvedLock) return;
+  S.solved = null; resetHelp();
   if (S.mode === "treino") {
     S.log.skipped.push(S.fig.label); S.shelf.push({ fig: S.fig, ok: false }); S.done++; renderShelf(true);
     if (S.done >= TREINO_N) { render(); finishTreino(); return; }
@@ -1365,44 +1548,57 @@ async function cast() {
     setMsg(S.mode === "treino" ? `Quase! "${W}" ainda não é o nome desta figura. Tente de novo.` : fig ? (DICT.has(w) ? `"${W}" é uma palavra, mas não é o nome desta figura.` : `"${W}" não é o nome desta figura. Tente de novo.`)
       : `"${W}" não é uma palavra que eu conheço. Tente outra.`, "bad");
     S.log.bad.push(w);
-    S.sel = []; render();
+    S.sel = []; noteAction("remove"); render();
     return;
   }
+  const toks = selTokens(), helped = S.help.level;
   if (S.mode === "treino") {
     const run = S.run, solved = S.fig, slot = els.shelf.children[S.done];
-    S.casting = true; S.log.mine.push({ w, shown: solved.label, n, dmg: 0 }); S.acertos++; S.done++;
+    S.casting = true; S.log.mine.push({ w, shown: solved.label, n, dmg: 0, helped }); S.acertos++; S.done++;
     const ultima = S.done >= TREINO_N;
-    if (!ultima) nextFigure();
-    S.sel = []; render();
+    const acc = showSolved(solved.label, toks); S.solvedLock = true; // a grafia certa fica nas casas um instante
+    render(); // as peças usadas continuam apagadas até a próxima figura
     els.slots.classList.add("cast"); bubble(els.pBubble, solved.label); speak(solved.label);
+    setMsg(`${solved.label.toUpperCase()}! Muito bem!${accNote(acc)}`, "good");
     await shamanAttack(els.shaman);
     await shoot(els.shaman.querySelector(".sh-gem") || els.shaman, slot || els.shelf, "p");
-    els.slots.classList.remove("cast");
-    S.casting = false;
     if (run !== S.run) return;
     S.shelf.push({ fig: solved, ok: true }); renderShelf(true);
-    setMsg(`${solved.label.toUpperCase()}! Muito bem!`, "good");
-    setTimeout(() => hideBubble(els.pBubble), 900);
-    if (ultima) finishTreino();
+    await wait(acc.length ? 1100 : 350);
+    if (run !== S.run) return;
+    els.slots.classList.remove("cast");
+    S.solved = null; S.solvedLock = false; S.casting = false;
+    hideBubble(els.pBubble);
+    if (ultima) { render(); finishTreino(); return; }
+    nextFigure(); render();
     return;
   }
   const run = S.run, dmg = playerDmg(S.mode, n);
-  const shown = fig ? S.fig.label : S.mode === "silabas" ? S.sel.map(id => S.tiles.find(t => t.id === id).ch).join("-") : w;
+  const certa = fig ? S.fig.label : grafia(w, "eu");
+  const acc = showSolved(certa, toks);
+  const shown = S.mode === "silabas" ? S.solved.map(p => p.t).join("-") : certa;
   S.casting = true;
-  S.log.mine.push({ w, shown, n, dmg });
-  if (fig) nextFigure(); else S.tiles = refill(S.mode, S.tiles, S.sel);
-  S.sel = []; render();
-  els.slots.classList.add("cast"); bubble(els.pBubble, fig ? shown : w); if (fig) speak(shown);
+  S.log.mine.push({ w, shown, n, dmg, helped });
+  if (fig) S.solvedLock = true; // no modo figuras a próxima figura vem depois de mostrar a grafia certa
+  else { S.tiles = refill(S.mode, S.tiles, S.sel); S.sel = []; resetHelp(); }
+  render();
+  els.slots.classList.add("cast"); bubble(els.pBubble, certa); if (fig) speak(certa);
   await shamanAttack(els.shaman);
   await shoot(els.shaman.querySelector(".sh-gem") || els.shaman, els.monster, "p");
-  els.slots.classList.remove("cast");
-  S.casting = false;
   if (run !== S.run || S.over) return;
   S.mhp -= dmg; hitAnim(els.monster); popDamage(els.monster, dmg, "#bff8f0");
-  setMsg(`${shown.toUpperCase()}${fig ? "!" : ":"} ${n} ${unitWord()}${n > 1 ? "s" : ""}, ${dmg} de dano!`, "good");
+  setMsg(`${shown.toUpperCase()}${fig ? "!" : ":"} ${n} ${unitWord()}${n > 1 ? "s" : ""}, ${dmg} de dano!${accNote(acc)}`, "good");
+  if (S.mhp <= 0) { els.slots.classList.remove("cast"); S.casting = false; S.solvedLock = false; render(); finishPhase(true); return; }
+  if (fig) {
+    render();
+    await wait(acc.length ? 900 : 200);
+    if (run !== S.run || S.over) return;
+    S.solved = null; S.solvedLock = false; nextFigure();
+  } else { const mine = S.solved; setTimeout(() => { if (S && S.run === run && S.solved && S.solved === mine) { S.solved = null; render(); } }, acc.length ? 1400 : 600); }
+  els.slots.classList.remove("cast");
+  S.casting = false;
   render();
   setTimeout(() => hideBubble(els.pBubble), 700);
-  if (S.mhp <= 0) finishPhase(true);
 }
 
 // ---------- monstro (tempo real) ----------
@@ -1461,14 +1657,16 @@ async function monsterLoop(run) {
       }
       await sleepP(run, 250);
       const w = parts.join(""), n = S.mode === "silabas" ? parts.length : w.length;
+      const certa = grafia(w, "monstro"), shownFoe = S.mode === "silabas" ? splitLike(certa, parts).join("-") : certa;
+      els.mBubble.textContent = certa; // no fim, o balão mostra a grafia certa
       const dmg = foeDmg(S.mode, n);
       foeLunge();
       await sleepP(run, reduce ? 0 : 220);
       await shoot(els.monster, els.shaman, "m");
       if (run !== S.run || S.over) return;
       S.php -= dmg; hitAnim(els.shaman); popDamage(els.shaman, dmg, "#ffd2c6");
-      S.log.foe.push({ w, shown: S.mode === "silabas" ? parts.join("-") : w, n, dmg });
-      setMsg(`${cap(art(P))} ${P.short} formou ${w.toUpperCase()}: ${dmg} de dano no xamã.`);
+      S.log.foe.push({ w, shown: shownFoe, n, dmg });
+      setMsg(`${cap(art(P))} ${P.short} formou ${certa.toUpperCase()}: ${dmg} de dano no xamã.`);
       S.mtiles = refill(foeMode(S.mode), S.mtiles, ids); S.msel = []; render(); renderFoe();
       setTimeout(() => hideBubble(els.mBubble), 600);
       if (S.php <= 0) { finishPhase(false); return; }
@@ -1549,12 +1747,14 @@ function pause() {
   S.paused = true; S.activeMs += performance.now() - S.t0;
   els.pauseBtn.textContent = "Continuar"; render();
   if (S.mode === "treino") {
-    showOverlay("Jogo pausado", "Sem pressa! Continue quando quiser.", [{ label: "Continuar", cls: "cast", action: resume }, { label: "Sair para o menu", action: showTitle }]);
+    showOverlay("Jogo pausado", "Sem pressa! Continue quando quiser.", [{ label: "Continuar", cls: "cast", action: resume },
+      { label: helpLabel(), keep: true, action: btn => { toggleHelp(); btn.textContent = helpLabel(); } }, { label: "Sair para o menu", action: showTitle }]);
     return;
   }
   showOverlay("Jogo pausado", `${cap(art(PHASES[S.phase]))} ${PHASES[S.phase].short} também está esperando.`, [
     { label: "Continuar", cls: "cast", action: resume },
     { label: calmLabel(), keep: true, action: btn => { toggleCalm(); btn.textContent = calmLabel(); } },
+    { label: helpLabel(), keep: true, action: btn => { toggleHelp(); btn.textContent = helpLabel(); } },
     { label: "Sair da fase", action: showMenu }]);
 }
 function resume() { if (!S || S.over) return; S.paused = false; S.t0 = performance.now(); hideOverlay(); els.pauseBtn.textContent = "Pausar"; render(); }
@@ -1583,12 +1783,13 @@ function showReport(won) {
   els.repStats.innerHTML = [
     ["Tempo", fmtTime(S.activeMs)],
     [fig ? "Figuras certas" : "Palavras certas", L.mine.length],
-    fig ? ["Dicas usadas", L.hints] : ["Maior palavra", longest ? longest.w.toUpperCase() : "–"],
+    fig ? ["Dicas usadas", L.hints + L.auto1] : ["Maior palavra", longest ? (longest.shown || longest.w).replace(/-/g, "").toUpperCase() : "–"],
     ["Dano causado", total]
   ].map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
   els.repMine.innerHTML = L.mine.length ? L.mine.map(e => wordChip(e)).join("") : '<p class="empty-note">Nenhuma palavra nesta fase.</p>';
   els.repFoeH.textContent = `Palavras ${de(P)} ${P.short}`;
   els.repFoe.innerHTML = L.foe.length ? L.foe.map(e => wordChip(e, "foe")).join("") : `<p class="empty-note">${cap(art(P))} ${P.short} não chegou a formar palavras.</p>`;
+  showHelpList(L);
   els.repSkipWrap.hidden = !L.skipped.length;
   els.repSkip.innerHTML = L.skipped.map(w => `<span class="w bad"><b>${w}</b></span>`).join("");
   els.repBadH.textContent = fig ? "Tentativas erradas" : "Tentativas que não são palavras";
@@ -1619,10 +1820,11 @@ function showTreinoReport() {
   const L = S.log;
   els.repTitle.textContent = S.acertos === TREINO_N ? `Rodada perfeita! ${TREINO_N} de ${TREINO_N}` : `Rodada completa: ${S.acertos} de ${TREINO_N}`;
   els.repSub.textContent = `Modo treino · ${TREINO_N} figuras · sem monstro`;
-  els.repStats.innerHTML = [["Tempo", fmtTime(S.activeMs)], ["Acertos", `${S.acertos} de ${TREINO_N}`], ["Dicas usadas", L.hints], ["Puladas", L.skipped.length]]
+  els.repStats.innerHTML = [["Tempo", fmtTime(S.activeMs)], ["Acertos", `${S.acertos} de ${TREINO_N}`], ["Dicas usadas", L.hints + L.auto1], ["Puladas", L.skipped.length]]
     .map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
   els.repMine.innerHTML = L.mine.length ? L.mine.map(e => wordChip(e)).join("") : '<p class="empty-note">Nenhuma figura nesta rodada.</p>';
   els.repFoeWrap.hidden = true;
+  showHelpList(L);
   els.repSkipWrap.hidden = !L.skipped.length;
   els.repSkip.innerHTML = L.skipped.map(w => `<span class="w bad"><b>${w}</b></span>`).join("");
   els.repBadH.textContent = "Tentativas erradas";
@@ -1635,19 +1837,30 @@ function showTreinoReport() {
   const copyBtn = add("Copiar relatório", "", () => copyReport(true, copyBtn));
   openReport();
 }
+// palavras em que o jogo mostrou a palavra inteira (2ª ajuda)
+function showHelpList(L) {
+  els.repShowWrap.hidden = !L.shown.length;
+  els.repShow.innerHTML = L.shown.map(w => `<span class="w bad"><b>${w}</b></span>`).join("");
+}
+function helpLine(L) {
+  const d = L.hints + L.auto1;
+  return `Dicas: ${d}${L.auto1 ? ` (${L.auto1} automática${L.auto1 > 1 ? "s" : ""})` : ""} · o jogo mostrou a palavra: ${L.shown.length ? `${L.shown.length} (${L.shown.join(", ")})` : "nenhuma vez"}`;
+}
 function copyReport(won, btn) {
   const i = S.phase, P = PHASES[Math.max(0, i)], L = S.log;
   const fig = isFig(S.mode), treino = S.mode === "treino";
   const fmt = e => `${e.shown} (${e.n} ${S.mode === "silabas" ? "sílabas" : "letras"}${treino ? "" : `, ${e.dmg} de dano`})`;
   const text = treino ? [
     `Abracapalavra – Modo treino (${TREINO_N} figuras)`,
-    `Acertos: ${S.acertos} de ${TREINO_N} · tempo ${fmtTime(S.activeMs)} · dicas usadas: ${L.hints}`,
+    `Acertos: ${S.acertos} de ${TREINO_N} · tempo ${fmtTime(S.activeMs)}`,
+    helpLine(L),
     `Figuras certas: ${L.mine.map(fmt).join(", ") || "nenhuma"}`,
     L.skipped.length ? `Figuras puladas: ${L.skipped.join(", ")}` : "",
     L.bad.length ? `Tentativas erradas: ${L.bad.join(", ")}` : ""
   ].filter(Boolean).join("\n") : [
     `Abracapalavra – Fase ${i + 1} (${P.name}) – modo ${MODE_NAME[S.mode]}`,
-    `Resultado: ${won ? "vitória" : "derrota"} · tempo ${fmtTime(S.activeMs)}${fig ? ` · dicas usadas: ${L.hints}` : ""}`,
+    `Resultado: ${won ? "vitória" : "derrota"} · tempo ${fmtTime(S.activeMs)}`,
+    helpLine(L),
     `${fig ? "Figuras certas" : "Palavras certas"} (${L.mine.length}): ${L.mine.map(fmt).join(", ") || "nenhuma"}`,
     fig && L.skipped.length ? `Figuras puladas: ${L.skipped.join(", ")}` : "",
     `Palavras do monstro (${L.foe.length}): ${L.foe.map(fmt).join(", ") || "nenhuma"}`,
@@ -1671,7 +1884,7 @@ els.btnCast.addEventListener("click", cast);
 els.btnBack.addEventListener("click", backspace);
 els.btnClear.addEventListener("click", clearSel);
 els.btnSwap.addEventListener("click", swapTiles);
-els.btnHint.addEventListener("click", hint);
+els.btnHint.addEventListener("click", () => giveHint(false));
 els.btnHear.addEventListener("click", () => { if (S && S.fig) speak(S.fig.label); });
 els.figPic.addEventListener("click", () => { if (S && S.fig) speak(S.fig.label); });
 document.querySelectorAll(".mode-card").forEach(b => b.addEventListener("click", () => b.dataset.mode === "treino" ? startTreino() : setMode(b.dataset.mode)));
@@ -1686,6 +1899,8 @@ els.menuBtn.addEventListener("click", () => S && S.mode === "treino" ? showTitle
 function syncCalm() { document.querySelectorAll(".calm-toggle").forEach(b => b.setAttribute("aria-pressed", String(calm))); }
 function toggleCalm() { calm = !calm; save("xama-calmo", calm); syncCalm(); updateSpeedLabel(); }
 const calmLabel = () => calm ? "Ritmo calmo: ligado" : "Ritmo calmo: desligado";
+function toggleHelp() { autoHelp = !autoHelp; save("xama-ajuda", autoHelp); if (S && S.help) S.help.idle = 0; }
+const helpLabel = () => autoHelp ? "Ajuda automática: ligada" : "Ajuda automática: desligada";
 document.querySelectorAll(".calm-toggle").forEach(b => b.addEventListener("click", toggleCalm));
 document.addEventListener("visibilitychange", () => { if (document.hidden && S && !S.paused && !S.over) pause(); });
 document.addEventListener("keydown", e => {
@@ -1709,6 +1924,7 @@ function boot() {
   els.heroShaman.innerHTML = shamanSVG("t");
   els.heroFoe.innerHTML = MONSTERS.dragao;
   buildLogo(); syncCalm();
+  setInterval(helpTick, 100);
   showTitle();
   // no menu, o xamã ataca o dragão de vez em quando (e ao tocar nele)
   let heroBusy = false;
